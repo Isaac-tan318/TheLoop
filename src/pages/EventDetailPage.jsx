@@ -4,7 +4,7 @@
 
 import { useParams } from 'react-router-dom';
 import { Container, Box } from '@mui/material';
-import { EventDetail } from '../components';
+import EventDetail from '../components/events/EventDetail';
 
 const EventDetailPage = () => {
   const { id } = useParams();

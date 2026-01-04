@@ -3,7 +3,7 @@
  * Manages events state and operations
  */
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import * as eventsApi from '../api/events';
 import { useAuth } from './AuthContext';
 
@@ -19,7 +19,7 @@ export const useEvents = () => {
 
 export const EventsProvider = ({ children }) => {
   const { user } = useAuth();
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]); // All events from API
   const [userSignups, setUserSignups] = useState([]);
   const [organiserEvents, setOrganiserEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,22 +31,39 @@ export const EventsProvider = ({ children }) => {
     endDate: null,
   });
 
-  // Fetch all events
+  // Filter events by interests on the frontend
+  const events = useMemo(() => {
+    if (filters.interests.length === 0) {
+      return allEvents;
+    }
+    return allEvents.filter(event => 
+      event.interests?.some(interest => filters.interests.includes(interest))
+    );
+  }, [allEvents, filters.interests]);
+
+  // Fetch all events (only sends search/date filters to API, not interests)
   const fetchEvents = useCallback(async (customFilters = null) => {
     setLoading(true);
     setError(null);
 
-    const result = await eventsApi.getAllEvents(customFilters || filters);
+    // Only send search and date filters to API, interests are filtered client-side
+    const apiFilters = customFilters || {
+      searchQuery: filters.searchQuery,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    };
+
+    const result = await eventsApi.getAllEvents(apiFilters);
 
     if (result.success) {
-      setEvents(result.data);
+      setAllEvents(result.data);
     } else {
       setError(result.error);
     }
 
     setLoading(false);
     return result;
-  }, [filters]);
+  }, [filters.searchQuery, filters.startDate, filters.endDate]);
 
   // Fetch user signups
   const fetchUserSignups = useCallback(async () => {
@@ -110,7 +127,7 @@ export const EventsProvider = ({ children }) => {
       setOrganiserEvents(prev => 
         prev.map(e => e.id === eventId ? { ...e, ...result.data } : e)
       );
-      setEvents(prev => 
+      setAllEvents(prev => 
         prev.map(e => e.id === eventId ? { ...e, ...result.data } : e)
       );
     } else {
@@ -130,7 +147,7 @@ export const EventsProvider = ({ children }) => {
 
     if (result.success) {
       setOrganiserEvents(prev => prev.filter(e => e.id !== eventId));
-      setEvents(prev => prev.filter(e => e.id !== eventId));
+      setAllEvents(prev => prev.filter(e => e.id !== eventId));
     } else {
       setError(result.error);
     }
@@ -207,10 +224,10 @@ export const EventsProvider = ({ children }) => {
     setError(null);
   }, []);
 
-  // Auto-fetch events when filters change
+  // Auto-fetch events when search/date filters change (interests are filtered client-side)
   useEffect(() => {
     fetchEvents();
-  }, [filters]);
+  }, [filters.searchQuery, filters.startDate, filters.endDate]);
 
   // Fetch user signups when user changes
   useEffect(() => {
@@ -227,6 +244,7 @@ export const EventsProvider = ({ children }) => {
 
   const value = {
     events,
+    allEvents,
     userSignups,
     organiserEvents,
     loading,

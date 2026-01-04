@@ -5,7 +5,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Box, Typography } from '@mui/material';
-import { EventForm, LoadingSpinner } from '../../components';
+import EventForm from '../../components/events/EventForm';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { getEventById } from '../../api/events';
 import { useAuth } from '../../context/AuthContext';
 

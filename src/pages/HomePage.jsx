@@ -6,7 +6,7 @@
 import { useMemo } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { EventList } from '../components';
+import EventList from '../components/events/EventList';
 import { useEvents } from "../context/EventsContext";
 import { useAuth } from "../context/AuthContext";
 import { parseISO, isAfter, isBefore, addDays } from 'date-fns';

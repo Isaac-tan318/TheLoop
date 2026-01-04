@@ -8,31 +8,29 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Context Providers
-import {
-  AuthProvider,
-  EventsProvider,
-  RemindersProvider,
-  InterestsProvider,
-} from './context';
+import { AuthProvider } from './context/AuthContext';
+import { EventsProvider } from './context/EventsContext';
+import { RemindersProvider } from './context/RemindersContext';
+import { InterestsProvider } from './context/InterestsContext';
 
 // Components
-import { Navbar, ProtectedRoute, ReminderNotification } from './components';
+import Navbar from './components/common/Navbar';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import ReminderNotification from './components/reminders/ReminderNotification';
 
 // Pages
-import {
-  HomePage,
-  EventsPage,
-  EventDetailPage,
-  CalendarPage,
-  LoginPage,
-  RegisterPage,
-  ProfilePage,
-  MyEventsPage,
-  RemindersPage,
-  OrganiserDashboard,
-  CreateEventPage,
-  EditEventPage,
-} from './pages';
+import HomePage from './pages/HomePage';
+import EventsPage from './pages/EventsPage';
+import EventDetailPage from './pages/EventDetailPage';
+import CalendarPage from './pages/CalendarPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
+import MyEventsPage from './pages/MyEventsPage';
+import RemindersPage from './pages/RemindersPage';
+import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
+import CreateEventPage from './pages/organiser/CreateEventPage';
+import EditEventPage from './pages/organiser/EditEventPage';
 
 // MUI Theme with red primary color
 const theme = createTheme({
@@ -160,13 +158,13 @@ function App() {
       <CssBaseline />
       <Router>
         <AuthProvider>
-          <InterestsProvider>
-            <EventsProvider>
+          <EventsProvider>
+            <InterestsProvider>
               <RemindersProvider>
                 <AppContent />
               </RemindersProvider>
-            </EventsProvider>
-          </InterestsProvider>
+            </InterestsProvider>
+          </EventsProvider>
         </AuthProvider>
       </Router>
     </ThemeProvider>

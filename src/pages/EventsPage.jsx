@@ -3,14 +3,24 @@
  * Browse and search all events
  */
 
-import { Container, Typography, Box, FormControl, Select, MenuItem, InputLabel } from '@mui/material';
-import { EventCard } from '../components';
+import { useMemo } from 'react';
+import { Container, Typography, Box, FormControl, Select, MenuItem, InputLabel, ListSubheader } from '@mui/material';
+import EventCard from '../components/events/EventCard';
 import { useEvents } from '../context/EventsContext';
-import { useInterests } from '../context/InterestsContext';
+import { useAuth } from '../context/AuthContext';
+import { getInterestsFromEvents } from '../api/interests';
 
 const EventsPage = () => {
-  const { events, loading, filters, updateFilters } = useEvents();
-  const { interests } = useInterests();
+  const { events, allEvents, loading, filters, updateFilters } = useEvents();
+  const { user } = useAuth();
+
+  // Get interests from ALL events (unfiltered) so filter options don't disappear
+  const { userInterests, otherInterests } = useMemo(() => {
+    const userInt = user?.interests || [];
+    const eventInt = getInterestsFromEvents(allEvents);
+    const other = eventInt.filter(i => !userInt.includes(i));
+    return { userInterests: userInt.sort(), otherInterests: other };
+  }, [user?.interests, allEvents]);
 
   const handleInterestFilter = (event) => {
     const value = event.target.value;
@@ -25,7 +35,7 @@ const EventsPage = () => {
             All Events
           </Typography>
           
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Filter by Interest</InputLabel>
             <Select
               value={filters.interests.length > 0 ? filters.interests[0] : 'All'}
@@ -33,11 +43,24 @@ const EventsPage = () => {
               onChange={handleInterestFilter}
             >
               <MenuItem value="All">All</MenuItem>
-              {interests.map((interest) => (
-                <MenuItem key={interest} value={interest}>
-                  {interest}
-                </MenuItem>
-              ))}
+              
+              {userInterests.length > 0 && [
+                <ListSubheader key="your-interests-header">Your Interests</ListSubheader>,
+                ...userInterests.map((interest) => (
+                  <MenuItem key={`user-${interest}`} value={interest}>
+                    {interest}
+                  </MenuItem>
+                ))
+              ]}
+              
+              {otherInterests.length > 0 && [
+                <ListSubheader key="other-interests-header">Other Interests</ListSubheader>,
+                ...otherInterests.map((interest) => (
+                  <MenuItem key={`other-${interest}`} value={interest}>
+                    {interest}
+                  </MenuItem>
+                ))
+              ]}
             </Select>
           </FormControl>
         </Box>

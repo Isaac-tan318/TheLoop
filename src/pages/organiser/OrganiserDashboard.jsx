@@ -22,7 +22,7 @@ import {
   Group as GroupIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { EventList } from '../../components';
+import EventList from '../../components/events/EventList';
 import { useEvents } from '../../context/EventsContext';
 import { useAuth } from '../../context/AuthContext';
 import { parseISO, isPast, isFuture } from 'date-fns';

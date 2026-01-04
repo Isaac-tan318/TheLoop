@@ -17,7 +17,7 @@ import {
   Grid,
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
-import { InterestTags } from '../components';
+import InterestTags from '../components/common/InterestTags';
 import { profileSchema, changePasswordSchema, validateForm } from '../utils/validation';
 
 const ProfilePage = () => {

@@ -23,18 +23,12 @@ const InterestTags = ({
   maxSelections = 10,
   allowCreate = false,
 }) => {
-  const { interests, addInterest } = useInterests();
+  const { interests } = useInterests();
   const [inputValue, setInputValue] = useState('');
 
   const handleChange = (event, newValue) => {
     if (newValue.length <= maxSelections) {
       onChange(newValue);
-    }
-  };
-
-  const handleAddNew = async (value) => {
-    if (allowCreate && value && !interests.includes(value)) {
-      await addInterest(value);
     }
   };
 
@@ -53,7 +47,6 @@ const InterestTags = ({
         onKeyDown={(event) => {
           if (event.key === 'Enter' && allowCreate && inputValue) {
             event.preventDefault();
-            handleAddNew(inputValue);
             if (!selected.includes(inputValue)) {
               onChange([...selected, inputValue]);
             }

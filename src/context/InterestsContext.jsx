@@ -1,10 +1,12 @@
 /**
  * Interests Context
- * Manages available interests/tags
+ * Manages available interests/tags derived from user profile and events
  */
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import * as interestsApi from '../api/interests';
+import { createContext, useContext, useMemo } from 'react';
+import { getInterestsFromEvents } from '../api/interests';
+import { useAuth } from './AuthContext';
+import { useEvents } from './EventsContext';
 
 const InterestsContext = createContext(null);
 
@@ -17,34 +19,27 @@ export const useInterests = () => {
 };
 
 export const InterestsProvider = ({ children }) => {
-  const [interests, setInterests] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch all interests on mount
-  useEffect(() => {
-    const fetchInterests = async () => {
-      const result = await interestsApi.getAllInterests();
-      if (result.success) {
-        setInterests(result.data);
-      }
-      setLoading(false);
-    };
-
-    fetchInterests();
-  }, []);
-
-  const addInterest = useCallback(async (interest) => {
-    const result = await interestsApi.addInterest(interest);
-    if (result.success) {
-      setInterests(result.data);
-    }
-    return result;
-  }, []);
+  const { user } = useAuth();
+  const { allEvents } = useEvents();
+  
+  // Compute interests from user profile and ALL events (not filtered)
+  const interestsData = useMemo(() => {
+    const userInterests = (user?.interests || []).sort();
+    const eventInterests = getInterestsFromEvents(allEvents || []);
+    // Other interests are from events that user doesn't have
+    const otherInterests = eventInterests.filter(i => !userInterests.includes(i));
+    // All combines both with user interests first
+    const all = [...userInterests, ...otherInterests];
+    
+    return { userInterests, eventInterests, otherInterests, all };
+  }, [user?.interests, allEvents]);
 
   const value = {
-    interests,
-    loading,
-    addInterest,
+    interests: interestsData.all,
+    userInterests: interestsData.userInterests,
+    eventInterests: interestsData.eventInterests,
+    otherInterests: interestsData.otherInterests,
+    loading: false,
   };
 
   return (

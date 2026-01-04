@@ -17,36 +17,6 @@
 
 import api from './config';
 
-/**
- * Get all events
- * 
- * Route: GET /api/events
- * 
- * Query Parameters:
- * - interests: string[] - Filter by interests (comma-separated)
- * - searchQuery: string - Search in title, description, location
- * - startDate: string - Filter events starting after this date
- * - endDate: string - Filter events starting before this date
- * 
- * Response:
- * [
- *   {
- *     "id": "uuid",
- *     "title": "Event Title",
- *     "description": "Event description",
- *     "location": "Event Location",
- *     "startDate": "2026-01-15T09:00:00.000Z",
- *     "endDate": "2026-01-15T17:00:00.000Z",
- *     "organiserId": "organiser-uuid",
- *     "organiserName": "Organiser Name",
- *     "interests": ["technology", "career"],
- *     "capacity": 100,
- *     "signupCount": 45,
- *     "imageUrl": "https://example.com/image.jpg",
- *     "createdAt": "2026-01-01T10:00:00.000Z"
- *   }
- * ]
- */
 export const getAllEvents = async (filters = {}) => {
   const params = new URLSearchParams();
   

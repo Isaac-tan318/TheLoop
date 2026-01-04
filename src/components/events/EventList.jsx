@@ -3,7 +3,7 @@
  * Displays a grid of event cards with filtering
  */
 
-import { Box, Typography, FormControl, Select, MenuItem, InputLabel } from '@mui/material';
+import { Box, Typography, FormControl, Select, MenuItem, InputLabel, ListSubheader } from '@mui/material';
 import EventCard from './EventCard';
 import { useEvents } from '../../context/EventsContext';
 import { useInterests } from '../../context/InterestsContext';
@@ -11,7 +11,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 
 const EventList = ({ events, title, showFilter = false, emptyMessage = 'No events found' }) => {
   const { loading, filters, updateFilters } = useEvents();
-  const { interests } = useInterests();
+  const { userInterests, otherInterests } = useInterests();
 
   const handleInterestFilter = (event) => {
     const value = event.target.value;
@@ -30,7 +30,7 @@ const EventList = ({ events, title, showFilter = false, emptyMessage = 'No event
         </Typography>
 
         {showFilter && (
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>By Interest</InputLabel>
             <Select
               value={filters.interests.length > 0 ? filters.interests[0] : 'All'}
@@ -38,11 +38,24 @@ const EventList = ({ events, title, showFilter = false, emptyMessage = 'No event
               onChange={handleInterestFilter}
             >
               <MenuItem value="All">All</MenuItem>
-              {interests.map((interest) => (
-                <MenuItem key={interest} value={interest}>
-                  {interest}
-                </MenuItem>
-              ))}
+              
+              {userInterests.length > 0 && [
+                <ListSubheader key="your-interests-header">Your Interests</ListSubheader>,
+                ...userInterests.map((interest) => (
+                  <MenuItem key={`user-${interest}`} value={interest}>
+                    {interest}
+                  </MenuItem>
+                ))
+              ]}
+              
+              {otherInterests.length > 0 && [
+                <ListSubheader key="other-interests-header">Other Interests</ListSubheader>,
+                ...otherInterests.map((interest) => (
+                  <MenuItem key={`other-${interest}`} value={interest}>
+                    {interest}
+                  </MenuItem>
+                ))
+              ]}
             </Select>
           </FormControl>
         )}

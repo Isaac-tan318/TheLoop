@@ -1,202 +1,149 @@
 /**
  * Authentication API
  * 
- * ROUTES:
+ * NOTE: Currently using mock data - no actual API calls
+ * 
+ * ROUTES (for future backend):
  * -------
- * POST /api/auth/register - Register a new user
- * POST /api/auth/login    - Login user
- * POST /api/auth/logout   - Logout user
- * GET  /api/auth/me       - Get current user profile
- * PUT  /api/auth/profile  - Update user profile
- * PUT  /api/auth/password - Change password
+ * POST /users             - Register a new user
+ * POST /users/login       - Login user
+ * POST /users/logout      - Logout user
+ * GET  /users/me          - Get current user profile
+ * PUT  /users/profile     - Update user profile
+ * PUT  /users/password    - Change password
  */
 
 import api from './config';
+import { v4 as uuidv4 } from 'uuid';
+
+// Fake user for testing
+const FAKE_USER = {
+  id: 'fake-user-123',
+  email: 'test@example.com',
+  name: 'Test User',
+  role: 'student',
+  interests: ['technology', 'career', 'networking'],
+  createdAt: new Date().toISOString(),
+};
+
+const FAKE_TOKEN = 'fake-jwt-token-for-testing';
 
 /**
  * Register a new user
  * 
- * Route: POST /api/auth/register
- * 
- * Request Payload:
- * {
- *   "email": "user@example.com",
- *   "password": "securePassword123",
- *   "name": "John Doe",
- *   "role": "student" | "organiser",
- *   "interests": ["technology", "career", "networking"]
- * }
- * 
- * Response:
- * {
- *   "user": {
- *     "id": "uuid",
- *     "email": "user@example.com",
- *     "name": "John Doe",
- *     "role": "student",
- *     "interests": ["technology", "career"],
- *     "createdAt": "2026-01-04T10:00:00.000Z"
- *   },
- *   "token": "jwt_token_here"
- * }
+ * NOTE: Currently mock - validates but doesn't call API
+ * Creates a fake user locally
  */
 export const register = async (userData) => {
-  const result = await api.post('/auth/register', {
-    email: userData.email,
-    password: userData.password,
-    name: userData.name || userData.email.split('@')[0],
-    role: userData.role,
-    interests: userData.interests || [],
-  });
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 500));
 
-  if (result.success) {
-    localStorage.setItem('theloop_token', result.data.token);
-    localStorage.setItem('theloop_user', JSON.stringify(result.data.user));
-    return { success: true, data: result.data.user };
+  // Validation is handled by the form, but we can do basic checks here
+  if (!userData.email || !userData.password || !userData.name || !userData.role) {
+    return { success: false, error: 'All fields are required' };
   }
 
-  return result;
+  if (userData.password.length < 6) {
+    return { success: false, error: 'Password must be at least 6 characters' };
+  }
+
+  // Create a mock user (no API call)
+  const newUser = {
+    id: uuidv4(),
+    email: userData.email,
+    name: userData.name,
+    role: userData.role,
+    interests: userData.interests || [],
+    createdAt: new Date().toISOString(),
+  };
+
+  localStorage.setItem('theloop_token', FAKE_TOKEN);
+  localStorage.setItem('theloop_user', JSON.stringify(newUser));
+  
+  return { success: true, data: newUser };
 };
 
 /**
  * Login user
  * 
- * Route: POST /api/auth/login
- * 
- * Request Payload:
- * {
- *   "email": "user@example.com",
- *   "password": "securePassword123"
- * }
- * 
- * Response:
- * {
- *   "user": {
- *     "id": "uuid",
- *     "email": "user@example.com",
- *     "name": "John Doe",
- *     "role": "student",
- *     "interests": ["technology", "career"],
- *     "createdAt": "2026-01-04T10:00:00.000Z"
- *   },
- *   "token": "jwt_token_here"
- * }
+ * NOTE: Currently mock - accepts any credentials and returns fake user
  */
 export const login = async (email, password) => {
-  const result = await api.post('/auth/login', { email, password });
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 500));
 
-  if (result.success) {
-    localStorage.setItem('theloop_token', result.data.token);
-    localStorage.setItem('theloop_user', JSON.stringify(result.data.user));
-    return { success: true, data: result.data.user };
+  // Basic validation
+  if (!email || !password) {
+    return { success: false, error: 'Email and password are required' };
   }
 
-  return result;
+  // Return fake user (no API call)
+  const user = { ...FAKE_USER, email };
+  
+  localStorage.setItem('theloop_token', FAKE_TOKEN);
+  localStorage.setItem('theloop_user', JSON.stringify(user));
+  
+  return { success: true, data: user };
 };
 
 /**
  * Logout user
- * 
- * Route: POST /api/auth/logout
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "message": "Logged out successfully"
- * }
+ * NOTE: Mock - just clears localStorage
  */
 export const logout = async () => {
-  try {
-    await api.post('/auth/logout', {});
-  } catch (error) {
-    console.error('Logout API error:', error);
-  }
-
   localStorage.removeItem('theloop_token');
   localStorage.removeItem('theloop_user');
-
   return { success: true };
 };
 
 /**
  * Get current user profile
- * 
- * Route: GET /api/auth/me
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "id": "uuid",
- *   "email": "user@example.com",
- *   "name": "John Doe",
- *   "role": "student",
- *   "interests": ["technology", "career"],
- *   "eventsSignedUp": ["event-id-1", "event-id-2"],
- *   "createdAt": "2026-01-04T10:00:00.000Z"
- * }
+ * NOTE: Mock - returns stored user from localStorage
  */
 export const getCurrentUser = async () => {
-  const result = await api.get('/auth/me');
-
-  if (result.success) {
-    localStorage.setItem('theloop_user', JSON.stringify(result.data));
+  const storedUser = localStorage.getItem('theloop_user');
+  if (storedUser) {
+    return { success: true, data: JSON.parse(storedUser) };
   }
-
-  return result;
+  return { success: false, error: 'Not authenticated' };
 };
 
 /**
  * Update user profile
- * 
- * Route: PUT /api/auth/profile
- * 
- * Request Payload:
- * {
- *   "name": "Updated Name",
- *   "interests": ["technology", "career", "sports"]
- * }
- * 
- * Response:
- * {
- *   "id": "uuid",
- *   "email": "user@example.com",
- *   "name": "Updated Name",
- *   "role": "student",
- *   "interests": ["technology", "career", "sports"],
- *   "createdAt": "2026-01-04T10:00:00.000Z",
- *   "updatedAt": "2026-01-04T12:00:00.000Z"
- * }
+ * NOTE: Mock - updates localStorage only
  */
 export const updateProfile = async (userId, profileData) => {
-  const result = await api.put('/auth/profile', profileData);
-
-  if (result.success) {
-    localStorage.setItem('theloop_user', JSON.stringify(result.data));
+  const storedUser = localStorage.getItem('theloop_user');
+  if (!storedUser) {
+    return { success: false, error: 'Not authenticated' };
   }
 
-  return result;
+  const user = JSON.parse(storedUser);
+  const updatedUser = {
+    ...user,
+    ...profileData,
+    updatedAt: new Date().toISOString(),
+  };
+
+  localStorage.setItem('theloop_user', JSON.stringify(updatedUser));
+  return { success: true, data: updatedUser };
 };
 
 /**
  * Change user password
- * 
- * Route: PUT /api/auth/password
- * 
- * Request Payload:
- * {
- *   "currentPassword": "oldPassword123",
- *   "newPassword": "newSecurePassword456"
- * }
- * 
- * Response:
- * {
- *   "message": "Password updated successfully"
- * }
+ * NOTE: Mock - always succeeds
  */
 export const changePassword = async (userId, currentPassword, newPassword) => {
-  return await api.put('/auth/password', { currentPassword, newPassword });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  if (!currentPassword || !newPassword) {
+    return { success: false, error: 'Both passwords are required' };
+  }
+  if (newPassword.length < 6) {
+    return { success: false, error: 'New password must be at least 6 characters' };
+  }
+  
+  return { success: true, data: { message: 'Password updated successfully' } };
 };
 
 /**

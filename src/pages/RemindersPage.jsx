@@ -3,7 +3,7 @@
  */
 
 import { Container, Box, Typography } from '@mui/material';
-import { ReminderList } from '../components';
+import ReminderList from '../components/reminders/ReminderList';
 
 const RemindersPage = () => {
   return (

@@ -3,7 +3,7 @@
  */
 
 import { Container, Box, Typography } from '@mui/material';
-import { EventForm } from '../../components';
+import EventForm from '../../components/events/EventForm';
 
 const CreateEventPage = () => {
   return (

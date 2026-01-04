@@ -3,7 +3,7 @@
  */
 
 import { Container, Box, Typography } from '@mui/material';
-import { EventCalendar } from '../components';
+import EventCalendar from '../components/calendar/EventCalendar';
 
 const CalendarPage = () => {
   return (

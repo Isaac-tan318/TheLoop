@@ -5,7 +5,7 @@
 
 import { Container, Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { useState, useMemo } from 'react';
-import { EventList } from '../components';
+import EventList from '../components/events/EventList';
 import { useEvents } from "../context/EventsContext";
 import { parseISO, isPast, isFuture } from 'date-fns';
 
