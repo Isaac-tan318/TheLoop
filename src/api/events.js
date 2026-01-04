@@ -1,241 +1,212 @@
 /**
  * Events API
  * 
+ * Uses JSON Server at localhost:3001
  * ROUTES:
  * -------
- * GET    /api/events              - Get all events (with filters)
- * GET    /api/events/:id          - Get event by ID
- * POST   /api/events              - Create new event (organiser only)
- * PUT    /api/events/:id          - Update event (organiser only)
- * DELETE /api/events/:id          - Delete event (organiser only)
- * GET    /api/events/organiser    - Get events by current organiser
- * POST   /api/events/:id/signup   - Sign up for event
- * DELETE /api/events/:id/signup   - Cancel signup
- * GET    /api/events/signups      - Get user's signed up events
- * GET    /api/events/:id/signups  - Get event signups (organiser only)
+ * GET    /events          - Get all events
+ * GET    /events/:id      - Get event by ID
+ * POST   /events          - Create new event
+ * PUT    /events/:id      - Update event
+ * DELETE /events/:id      - Delete event
+ * GET    /signups         - Get all signups
+ * POST   /signups         - Create signup
+ * DELETE /signups/:id     - Delete signup
  */
 
 import api from './config';
+import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Get all events with optional client-side filtering
+ */
 export const getAllEvents = async (filters = {}) => {
-  const params = new URLSearchParams();
+  const result = await api.get('/events');
   
-  if (filters.interests?.length > 0) {
-    params.append('interests', filters.interests.join(','));
-  }
+  if (!result.success) return result;
+  
+  let events = result.data;
+  
+  // Client-side filtering
   if (filters.searchQuery) {
-    params.append('searchQuery', filters.searchQuery);
+    const query = filters.searchQuery.toLowerCase();
+    events = events.filter(e => 
+      e.title.toLowerCase().includes(query) ||
+      e.description.toLowerCase().includes(query) ||
+      e.location.toLowerCase().includes(query)
+    );
   }
-  if (filters.startDate) {
-    params.append('startDate', filters.startDate);
-  }
-  if (filters.endDate) {
-    params.append('endDate', filters.endDate);
-  }
-
-  const queryString = params.toString();
-  const endpoint = queryString ? `/events?${queryString}` : '/events';
   
-  return await api.get(endpoint);
+  if (filters.startDate) {
+    events = events.filter(e => new Date(e.startDate) >= new Date(filters.startDate));
+  }
+  
+  if (filters.endDate) {
+    events = events.filter(e => new Date(e.startDate) <= new Date(filters.endDate));
+  }
+  
+  return { success: true, data: events };
 };
 
 /**
  * Get event by ID
- * 
- * Route: GET /api/events/:id
- * 
- * Response:
- * {
- *   "id": "uuid",
- *   "title": "Event Title",
- *   "description": "Event description",
- *   "location": "Event Location",
- *   "startDate": "2026-01-15T09:00:00.000Z",
- *   "endDate": "2026-01-15T17:00:00.000Z",
- *   "organiserId": "organiser-uuid",
- *   "organiserName": "Organiser Name",
- *   "interests": ["technology", "career"],
- *   "capacity": 100,
- *   "signupCount": 45,
- *   "isFull": false,
- *   "isSignedUp": true,
- *   "imageUrl": "https://example.com/image.jpg",
- *   "createdAt": "2026-01-01T10:00:00.000Z"
- * }
  */
 export const getEventById = async (eventId) => {
   return await api.get(`/events/${eventId}`);
 };
 
 /**
- * Get events by current organiser
- * 
- * Route: GET /api/events/organiser
- * 
- * Request: Authorization header with JWT token
- * 
- * Response: Array of event objects (same as getAllEvents)
+ * Get events by organiser ID
  */
 export const getEventsByOrganiser = async (organiserId) => {
-  return await api.get('/events/organiser');
+  const result = await api.get(`/events?organiserId=${organiserId}`);
+  return result;
 };
 
 /**
  * Create a new event
- * 
- * Route: POST /api/events
- * 
- * Request Payload:
- * {
- *   "title": "Event Title",
- *   "description": "Event description",
- *   "location": "Event Location",
- *   "startDate": "2026-01-15T09:00:00.000Z",
- *   "endDate": "2026-01-15T17:00:00.000Z",
- *   "interests": ["technology", "career"],
- *   "capacity": 100,
- *   "imageUrl": "https://example.com/image.jpg" (optional)
- * }
- * 
- * Response: Created event object
  */
 export const createEvent = async (eventData, organiser) => {
-  return await api.post('/events', {
+  const newEvent = {
+    id: uuidv4(),
     title: eventData.title,
     description: eventData.description,
     location: eventData.location,
     startDate: eventData.startDate,
     endDate: eventData.endDate,
+    organiserId: organiser.id,
+    organiserName: organiser.name,
     interests: eventData.interests || [],
     capacity: eventData.capacity || 50,
+    signupCount: 0,
     imageUrl: eventData.imageUrl || null,
-  });
+    createdAt: new Date().toISOString(),
+  };
+  
+  return await api.post('/events', newEvent);
 };
 
 /**
  * Update an event
- * 
- * Route: PUT /api/events/:id
- * 
- * Request Payload: (all fields optional)
- * {
- *   "title": "Updated Title",
- *   "description": "Updated description",
- *   "location": "Updated Location",
- *   "startDate": "2026-01-15T09:00:00.000Z",
- *   "endDate": "2026-01-15T17:00:00.000Z",
- *   "interests": ["technology", "career"],
- *   "capacity": 150,
- *   "imageUrl": "https://example.com/new-image.jpg"
- * }
- * 
- * Response: Updated event object
  */
 export const updateEvent = async (eventId, updates, organiserId) => {
-  return await api.put(`/events/${eventId}`, updates);
+  return await api.patch(`/events/${eventId}`, updates);
 };
 
 /**
  * Delete an event
- * 
- * Route: DELETE /api/events/:id
- * 
- * Response:
- * {
- *   "message": "Event deleted successfully"
- * }
  */
 export const deleteEvent = async (eventId, organiserId) => {
+  // Also delete related signups
+  const signupsResult = await api.get(`/signups?eventId=${eventId}`);
+  if (signupsResult.success && signupsResult.data.length > 0) {
+    for (const signup of signupsResult.data) {
+      await api.delete(`/signups/${signup.id}`);
+    }
+  }
+  
   return await api.delete(`/events/${eventId}`);
 };
 
 /**
  * Sign up for an event
- * 
- * Route: POST /api/events/:id/signup
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "id": "signup-uuid",
- *   "eventId": "event-uuid",
- *   "userId": "user-uuid",
- *   "signedUpAt": "2026-01-04T10:00:00.000Z"
- * }
  */
 export const signUpForEvent = async (eventId, user) => {
-  return await api.post(`/events/${eventId}/signup`, {});
+  // Check if already signed up
+  const existingResult = await api.get(`/signups?eventId=${eventId}&userId=${user.id}`);
+  if (existingResult.success && existingResult.data.length > 0) {
+    return { success: false, error: 'Already signed up for this event' };
+  }
+  
+  const signup = {
+    id: uuidv4(),
+    eventId,
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    signedUpAt: new Date().toISOString(),
+  };
+  
+  const result = await api.post('/signups', signup);
+  
+  // Update event signup count
+  if (result.success) {
+    const eventResult = await api.get(`/events/${eventId}`);
+    if (eventResult.success) {
+      await api.patch(`/events/${eventId}`, {
+        signupCount: (eventResult.data.signupCount || 0) + 1
+      });
+    }
+  }
+  
+  return result;
 };
 
 /**
  * Cancel signup for an event
- * 
- * Route: DELETE /api/events/:id/signup
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "message": "Signup cancelled successfully"
- * }
  */
 export const cancelSignup = async (eventId, userId) => {
-  return await api.delete(`/events/${eventId}/signup`);
+  // Find the signup
+  const signupsResult = await api.get(`/signups?eventId=${eventId}&userId=${userId}`);
+  
+  if (!signupsResult.success || signupsResult.data.length === 0) {
+    return { success: false, error: 'Signup not found' };
+  }
+  
+  const signup = signupsResult.data[0];
+  const result = await api.delete(`/signups/${signup.id}`);
+  
+  // Update event signup count
+  if (result.success) {
+    const eventResult = await api.get(`/events/${eventId}`);
+    if (eventResult.success) {
+      await api.patch(`/events/${eventId}`, {
+        signupCount: Math.max((eventResult.data.signupCount || 1) - 1, 0)
+      });
+    }
+  }
+  
+  return result;
 };
 
 /**
  * Get user's signed up events
- * 
- * Route: GET /api/events/signups
- * 
- * Request: Authorization header with JWT token
- * 
- * Response: Array of event objects with signedUpAt field
  */
 export const getUserSignups = async (userId) => {
-  return await api.get('/events/signups');
+  // Get all signups for this user
+  const signupsResult = await api.get(`/signups?userId=${userId}`);
+  
+  if (!signupsResult.success) return signupsResult;
+  
+  // Get the full event details for each signup
+  const events = [];
+  for (const signup of signupsResult.data) {
+    const eventResult = await api.get(`/events/${signup.eventId}`);
+    if (eventResult.success) {
+      events.push({
+        ...eventResult.data,
+        signedUpAt: signup.signedUpAt,
+      });
+    }
+  }
+  
+  return { success: true, data: events };
 };
 
 /**
  * Check if user is signed up for an event
- * 
- * Route: GET /api/events/:id/signup/status
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "isSignedUp": true
- * }
  */
 export const isUserSignedUp = async (eventId, userId) => {
-  const result = await api.get(`/events/${eventId}/signup/status`);
+  const result = await api.get(`/signups?eventId=${eventId}&userId=${userId}`);
   if (result.success) {
-    return { success: true, data: result.data.isSignedUp };
+    return { success: true, data: result.data.length > 0 };
   }
   return result;
 };
 
 /**
  * Get event signups (for organisers)
- * 
- * Route: GET /api/events/:id/signups
- * 
- * Request: Authorization header with JWT token (must be event organiser)
- * 
- * Response:
- * [
- *   {
- *     "id": "signup-uuid",
- *     "eventId": "event-uuid",
- *     "userId": "user-uuid",
- *     "userName": "User Name",
- *     "userEmail": "user@example.com",
- *     "signedUpAt": "2026-01-04T10:00:00.000Z"
- *   }
- * ]
  */
 export const getEventSignups = async (eventId, organiserId) => {
-  return await api.get(`/events/${eventId}/signups`);
+  return await api.get(`/signups?eventId=${eventId}`);
 };
