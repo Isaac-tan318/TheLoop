@@ -3,7 +3,7 @@
  * Displays event information in a card format
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -27,16 +27,24 @@ import {
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
-import { useEvents } from '../../context/EventsContext';
 
-const EventCard = ({ event, showSignupButton = true }) => {
+const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignup, isSignedUp, loading }) => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { signUpForEvent, cancelSignup, isSignedUp, loading } = useEvents();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [userSignedUp, setUserSignedUp] = useState(false);
 
-  const userSignedUp = isSignedUp(event.id);
   const isOrganiser = user?.id === event.organiserId;
+
+  // Check signup status
+  useEffect(() => {
+    if (isSignedUp && user) {
+      (async () => {
+        const result = await isSignedUp(event.id);
+        setUserSignedUp(result);
+      })();
+    }
+  }, [event.id, isSignedUp, user]);
 
   const handleSignup = async () => {
     if (!isAuthenticated) {
@@ -45,7 +53,9 @@ const EventCard = ({ event, showSignupButton = true }) => {
     }
 
     const result = await signUpForEvent(event.id);
-    if (!result.success) {
+    if (result.success) {
+      setUserSignedUp(true);
+    } else {
       alert(result.error);
     }
   };
@@ -53,6 +63,7 @@ const EventCard = ({ event, showSignupButton = true }) => {
   const handleCancelSignup = async () => {
     const result = await cancelSignup(event.id);
     if (result.success) {
+      setUserSignedUp(false);
       setConfirmOpen(false);
     } else {
       alert(result.error);

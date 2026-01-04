@@ -5,16 +5,17 @@
 
 import { useMemo } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
-import ReminderNotification from '../components/reminders/ReminderNotification';
 import { Link } from 'react-router-dom';
-import EventList from '../components/events/EventList';
-import { useEvents } from "../context/EventsContext";
+import { Add as AddIcon } from '@mui/icons-material';
+import EventCard from '../components/events/EventCard';
 import { useAuth } from "../context/AuthContext";
 import { parseISO, isAfter, isBefore, addDays } from 'date-fns';
 
-const HomePage = () => {
-  const { events } = useEvents();
-  const { isAuthenticated } = useAuth();
+const HomePage = ({ eventsProps }) => {
+  const { events, signUpForEvent, cancelSignup, isSignedUp, loading } = eventsProps;
+  const { isAuthenticated, user } = useAuth();
+
+  const isOrganiser = user?.role === 'organiser';
 
   const now = new Date();
   const oneWeekFromNow = addDays(now, 7);
@@ -38,7 +39,6 @@ const HomePage = () => {
 
   return (
     <Box sx={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 64px)' }}>
-      <ReminderNotification />
       {/* Hero Section */}
       {!isAuthenticated && (
         <Box
@@ -89,22 +89,70 @@ const HomePage = () => {
       )}
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Create Event Button for Organisers */}
+        {isOrganiser && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+            <Button
+              component={Link}
+              to="/organiser/events/new"
+              variant="contained"
+              startIcon={<AddIcon />}
+              sx={{
+                backgroundColor: '#dc2626',
+                '&:hover': { backgroundColor: '#b91c1c' },
+              }}
+            >
+              Create Event
+            </Button>
+          </Box>
+        )}
+
         {/* New Events Section */}
-        <EventList
-          events={newEvents}
-          title="New events"
-          showFilter
-          emptyMessage="No new events at the moment. Check back later!"
-        />
+        {newEvents.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 3 }}>
+              New events
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+              {newEvents.map(event => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  signUpForEvent={signUpForEvent}
+                  cancelSignup={cancelSignup}
+                  isSignedUp={isSignedUp}
+                  loading={loading}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
 
         {/* Upcoming Events Section */}
         {upcomingEvents.length > 0 && (
-          <EventList
-            events={upcomingEvents}
-            title="Upcoming events"
-            showFilter
-            emptyMessage="No upcoming events this week"
-          />
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 3 }}>
+              Upcoming events
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+              {upcomingEvents.map(event => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  signUpForEvent={signUpForEvent}
+                  cancelSignup={cancelSignup}
+                  isSignedUp={isSignedUp}
+                  loading={loading}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {events.length === 0 && (
+          <Box sx={{ textAlign: 'center', py: 8, backgroundColor: 'white', borderRadius: 2 }}>
+            <Typography color="textSecondary">No events at the moment. Check back later!</Typography>
+          </Box>
         )}
 
         {/* CTA for non-authenticated users */}

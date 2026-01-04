@@ -12,18 +12,17 @@ import {
   Autocomplete,
   FormHelperText,
 } from '@mui/material';
-import { useInterests } from '../../context/InterestsContext';
 
 const InterestTags = ({
   selected = [],
   onChange,
+  interests = [],
   label = 'Interests',
   error,
   helperText,
   maxSelections = 10,
   allowCreate = false,
 }) => {
-  const { interests } = useInterests();
   const [inputValue, setInputValue] = useState('');
 
   const handleChange = (event, newValue) => {

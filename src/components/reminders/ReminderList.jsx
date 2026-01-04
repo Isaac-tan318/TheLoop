@@ -23,11 +23,9 @@ import {
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { format, parseISO, isPast, isFuture } from 'date-fns';
-import { useReminders } from '../../context/RemindersContext';
 
-const ReminderList = () => {
+const ReminderList = ({ reminders = [], dismissReminder = () => {} }) => {
   const navigate = useNavigate();
-  const { reminders, dismissReminder } = useReminders();
 
   const upcomingReminders = reminders.filter(
     r => !r.dismissed && r.event && isFuture(parseISO(r.eventStart))

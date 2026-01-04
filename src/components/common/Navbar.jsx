@@ -23,17 +23,14 @@ import {
   Notifications as NotificationsIcon,
   CalendarMonth as CalendarIcon,
   Event as EventIcon,
+  Dashboard as DashboardIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
-import { useReminders } from '../../context/RemindersContext';
-import { useEvents } from '../../context/EventsContext';
 
-const Navbar = () => {
+const Navbar = ({ reminders = [], updateFilters }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
-  const { reminders } = useReminders();
-  const { updateFilters } = useEvents();
   const [anchorEl, setAnchorEl] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -63,7 +60,7 @@ const Navbar = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    updateFilters({ searchQuery });
+    if (updateFilters) updateFilters({ searchQuery });
     if (location.pathname !== '/events') {
       navigate('/events');
     }
@@ -130,6 +127,21 @@ const Navbar = () => {
           >
             Events
           </Button>
+
+          {/* Dashboard Button for Organisers */}
+          {isAuthenticated && user?.role === 'organiser' && (
+            <Button
+              component={Link}
+              to="/organiser/dashboard"
+              startIcon={<DashboardIcon />}
+              sx={{ 
+                color: '#dc2626',
+                '&:hover': { backgroundColor: '#fef2f2' },
+              }}
+            >
+              Dashboard
+            </Button>
+          )}
 
           {/* Notifications */}
           {isAuthenticated && (

@@ -12,7 +12,6 @@ import {
   Paper,
   Chip,
   Divider,
-  Grid,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -35,14 +34,12 @@ import {
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
-import { useEvents } from '../../context/EventsContext';
-import { getEventById, getEventSignups } from '../../api/events';
+import * as eventsApi from '../../api/events';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-const EventDetail = ({ eventId }) => {
+const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const { signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading } = useEvents();
   
   const [event, setEvent] = useState(null);
   const [signups, setSignups] = useState([]);
@@ -50,20 +47,26 @@ const EventDetail = ({ eventId }) => {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [showSignups, setShowSignups] = useState(false);
+  const [userSignedUp, setUserSignedUp] = useState(false);
 
-  const userSignedUp = event ? isSignedUp(event.id) : false;
   const isOrganiser = user?.id === event?.organiserId;
 
   useEffect(() => {
     const fetchEvent = async () => {
       setLoadingEvent(true);
-      const result = await getEventById(eventId);
+      const result = await eventsApi.getEventById(eventId);
       if (result.success) {
         setEvent(result.data);
         
+        // Check signup status
+        if (user && isSignedUp) {
+          const signedUp = await isSignedUp(eventId);
+          setUserSignedUp(signedUp);
+        }
+        
         // Fetch signups if organiser
         if (user && result.data.organiserId === user.id) {
-          const signupsResult = await getEventSignups(eventId, user.id);
+          const signupsResult = await eventsApi.getEventSignups(eventId, user.id);
           if (signupsResult.success) {
             setSignups(signupsResult.data);
           }
@@ -75,7 +78,7 @@ const EventDetail = ({ eventId }) => {
     };
 
     fetchEvent();
-  }, [eventId, user, navigate]);
+  }, [eventId, user, navigate, isSignedUp]);
 
   const handleSignup = async () => {
     if (!isAuthenticated) {
@@ -85,6 +88,7 @@ const EventDetail = ({ eventId }) => {
 
     const result = await signUpForEvent(eventId);
     if (result.success) {
+      setUserSignedUp(true);
       setEvent(prev => ({
         ...prev,
         signupCount: (prev.signupCount || 0) + 1,
@@ -97,6 +101,7 @@ const EventDetail = ({ eventId }) => {
   const handleCancelSignup = async () => {
     const result = await cancelSignup(eventId);
     if (result.success) {
+      setUserSignedUp(false);
       setEvent(prev => ({
         ...prev,
         signupCount: Math.max((prev.signupCount || 1) - 1, 0),

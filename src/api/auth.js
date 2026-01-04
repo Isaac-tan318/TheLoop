@@ -16,13 +16,22 @@
 import api from './config';
 import { v4 as uuidv4 } from 'uuid';
 
-// Fake user for testing
-const FAKE_USER = {
-  id: 'fake-user-123',
-  email: 'test@example.com',
-  name: 'Test User',
+// Fake users for testing
+const FAKE_STUDENT = {
+  id: 'fake-student-123',
+  email: 'student@example.com',
+  name: 'Test Student',
   role: 'student',
   interests: ['technology', 'career', 'networking'],
+  createdAt: new Date().toISOString(),
+};
+
+const FAKE_ORGANISER = {
+  id: 'fake-organiser-456',
+  email: 'organiser@example.com',
+  name: 'Test Organiser',
+  role: 'organiser',
+  interests: ['events', 'management', 'networking'],
   createdAt: new Date().toISOString(),
 };
 
@@ -66,7 +75,8 @@ export const register = async (userData) => {
 /**
  * Login user
  * 
- * NOTE: Currently mock - accepts any credentials and returns fake user
+ * NOTE: Currently mock - accepts any credentials
+ * Use "organiser@example.com" for organiser account, anything else for student
  */
 export const login = async (email, password) => {
   // Simulate network delay
@@ -77,8 +87,10 @@ export const login = async (email, password) => {
     return { success: false, error: 'Email and password are required' };
   }
 
-  // Return fake user (no API call)
-  const user = { ...FAKE_USER, email };
+  // Return organiser or student based on email
+  const user = email.toLowerCase().includes('organiser')
+    ? { ...FAKE_ORGANISER, email }
+    : { ...FAKE_STUDENT, email };
   
   localStorage.setItem('theloop_token', FAKE_TOKEN);
   localStorage.setItem('theloop_user', JSON.stringify(user));

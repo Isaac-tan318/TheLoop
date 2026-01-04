@@ -3,24 +3,14 @@
  * Browse and search all events
  */
 
-import { useMemo } from 'react';
 import { Container, Typography, Box, FormControl, Select, MenuItem, InputLabel, ListSubheader } from '@mui/material';
 import EventCard from '../components/events/EventCard';
-import { useEvents } from '../context/EventsContext';
 import { useAuth } from '../context/AuthContext';
-import { getInterestsFromEvents } from '../api/interests';
 
-const EventsPage = () => {
-  const { events, allEvents, loading, filters, updateFilters } = useEvents();
+const EventsPage = ({ eventsProps, interestsProps }) => {
+  const { events, allEvents, loading, filters, updateFilters, signUpForEvent, cancelSignup, isSignedUp } = eventsProps;
+  const { userInterests, otherInterests } = interestsProps;
   const { user } = useAuth();
-
-  // Get interests from ALL events (unfiltered) so filter options don't disappear
-  const { userInterests, otherInterests } = useMemo(() => {
-    const userInt = user?.interests || [];
-    const eventInt = getInterestsFromEvents(allEvents);
-    const other = eventInt.filter(i => !userInt.includes(i));
-    return { userInterests: userInt.sort(), otherInterests: other };
-  }, [user?.interests, allEvents]);
 
   const handleInterestFilter = (event) => {
     const value = event.target.value;
@@ -84,7 +74,13 @@ const EventsPage = () => {
           }}>
             {events.map((event) => (
               <Box key={event.id}>
-                <EventCard event={event} />
+                <EventCard
+                  event={event}
+                  signUpForEvent={signUpForEvent}
+                  cancelSignup={cancelSignup}
+                  isSignedUp={isSignedUp}
+                  loading={loading}
+                />
               </Box>
             ))}
           </Box>

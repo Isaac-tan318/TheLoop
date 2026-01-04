@@ -121,8 +121,9 @@ export const validateForm = (schema, data) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors = {};
-      error.errors.forEach((err) => {
-        const path = err.path.join('.');
+      const zodErrors = error.errors || error.issues || [];
+      zodErrors.forEach((err) => {
+        const path = err.path.join('.') || 'form';
         errors[path] = err.message;
       });
       return { success: false, errors };

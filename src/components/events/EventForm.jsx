@@ -15,13 +15,11 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { eventSchema, validateForm } from '../../utils/validation';
-import { useEvents } from '../../context/EventsContext';
 import InterestTags from '../common/InterestTags';
 import { format, parseISO } from 'date-fns';
 
-const EventForm = ({ event = null, onSuccess }) => {
+const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interests = [], loading = false, error = null }) => {
   const navigate = useNavigate();
-  const { createEvent, updateEvent, loading, error } = useEvents();
   
   const isEditing = !!event;
   
@@ -227,6 +225,7 @@ const EventForm = ({ event = null, onSuccess }) => {
           <InterestTags
             selected={formData.interests}
             onChange={handleInterestsChange}
+            interests={interests}
             label="Event Interest Tags"
             error={!!errors.interests}
             helperText={errors.interests}

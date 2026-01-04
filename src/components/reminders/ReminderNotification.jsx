@@ -20,11 +20,9 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
-import { useReminders } from '../../context/RemindersContext';
 
-const ReminderNotification = () => {
+const ReminderNotification = ({ activeReminder, showNotification, closeNotification }) => {
   const navigate = useNavigate();
-  const { activeReminder, showNotification, closeNotification } = useReminders();
 
   if (!activeReminder) return null;
 

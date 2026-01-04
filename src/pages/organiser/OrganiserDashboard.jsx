@@ -9,7 +9,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   Tabs,
   Tab,
@@ -22,15 +21,14 @@ import {
   Group as GroupIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import EventList from '../../components/events/EventList';
-import { useEvents } from '../../context/EventsContext';
+import EventCard from '../../components/events/EventCard';
 import { useAuth } from '../../context/AuthContext';
 import { parseISO, isPast, isFuture } from 'date-fns';
 
-const OrganiserDashboard = () => {
+const OrganiserDashboard = ({ eventsProps }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { organiserEvents } = useEvents();
+  const { organiserEvents, signUpForEvent, cancelSignup, isSignedUp, loading } = eventsProps;
   const [tab, setTab] = useState(0);
 
   const upcomingEvents = useMemo(() => {
@@ -76,83 +74,47 @@ const OrganiserDashboard = () => {
         </Box>
 
         {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      backgroundColor: '#fef2f2',
-                      borderRadius: '50%',
-                      p: 1.5,
-                    }}
-                  >
-                    <EventIcon sx={{ color: '#dc2626' }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {organiserEvents.length}
-                    </Typography>
-                    <Typography color="textSecondary" variant="body2">
-                      Total Events
-                    </Typography>
-                  </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 4 }}>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ backgroundColor: '#fef2f2', borderRadius: '50%', p: 1.5 }}>
+                  <EventIcon sx={{ color: '#dc2626' }} />
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      backgroundColor: '#dcfce7',
-                      borderRadius: '50%',
-                      p: 1.5,
-                    }}
-                  >
-                    <TrendingUpIcon sx={{ color: '#22c55e' }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {upcomingEvents.length}
-                    </Typography>
-                    <Typography color="textSecondary" variant="body2">
-                      Upcoming Events
-                    </Typography>
-                  </Box>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{organiserEvents.length}</Typography>
+                  <Typography color="textSecondary" variant="body2">Total Events</Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      backgroundColor: '#dbeafe',
-                      borderRadius: '50%',
-                      p: 1.5,
-                    }}
-                  >
-                    <GroupIcon sx={{ color: '#3b82f6' }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {totalSignups}
-                    </Typography>
-                    <Typography color="textSecondary" variant="body2">
-                      Total Signups
-                    </Typography>
-                  </Box>
+              </Box>
+            </CardContent>
+          </Card>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ backgroundColor: '#dcfce7', borderRadius: '50%', p: 1.5 }}>
+                  <TrendingUpIcon sx={{ color: '#22c55e' }} />
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{upcomingEvents.length}</Typography>
+                  <Typography color="textSecondary" variant="body2">Upcoming Events</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ backgroundColor: '#dbeafe', borderRadius: '50%', p: 1.5 }}>
+                  <GroupIcon sx={{ color: '#3b82f6' }} />
+                </Box>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{totalSignups}</Typography>
+                  <Typography color="textSecondary" variant="body2">Total Signups</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
 
         {/* Events Tabs */}
         <Paper sx={{ mb: 4, borderRadius: 2 }}>
@@ -160,12 +122,8 @@ const OrganiserDashboard = () => {
             value={tab}
             onChange={handleTabChange}
             sx={{
-              '& .MuiTab-root.Mui-selected': {
-                color: '#dc2626',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#dc2626',
-              },
+              '& .MuiTab-root.Mui-selected': { color: '#dc2626' },
+              '& .MuiTabs-indicator': { backgroundColor: '#dc2626' },
             }}
           >
             <Tab label={`Upcoming (${upcomingEvents.length})`} />
@@ -175,35 +133,34 @@ const OrganiserDashboard = () => {
         </Paper>
 
         {/* Events List */}
-        {tab === 0 && (
-          <EventList
-            events={upcomingEvents}
-            title=""
-            showSignupButton={false}
-            emptyMessage="No upcoming events. Create one to get started!"
-          />
-        )}
-
-        {tab === 1 && (
-          <EventList
-            events={pastEvents}
-            title=""
-            showSignupButton={false}
-            emptyMessage="No past events yet"
-          />
-        )}
-
-        {tab === 2 && (
-          <EventList
-            events={organiserEvents}
-            title=""
-            showSignupButton={false}
-            emptyMessage="You haven't created any events yet"
-          />
-        )}
+        {tab === 0 && renderEventGrid(upcomingEvents, "No upcoming events. Create one to get started!")}
+        {tab === 1 && renderEventGrid(pastEvents, "No past events yet")}
+        {tab === 2 && renderEventGrid(organiserEvents, "You haven't created any events yet")}
       </Container>
     </Box>
   );
+
+  function renderEventGrid(events, emptyMsg) {
+    return events.length === 0 ? (
+      <Box sx={{ textAlign: 'center', py: 8, backgroundColor: 'white', borderRadius: 2 }}>
+        <Typography color="textSecondary">{emptyMsg}</Typography>
+      </Box>
+    ) : (
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+        {events.map(event => (
+          <EventCard
+            key={event.id}
+            event={event}
+            showSignupButton={false}
+            signUpForEvent={signUpForEvent}
+            cancelSignup={cancelSignup}
+            isSignedUp={isSignedUp}
+            loading={loading}
+          />
+        ))}
+      </Box>
+    );
+  }
 };
 
 export default OrganiserDashboard;

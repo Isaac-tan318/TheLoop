@@ -5,13 +5,22 @@
 
 import { Box, Typography, FormControl, Select, MenuItem, InputLabel, ListSubheader } from '@mui/material';
 import EventCard from './EventCard';
-import { useEvents } from '../../context/EventsContext';
-import { useInterests } from '../../context/InterestsContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-const EventList = ({ events, title, showFilter = false, emptyMessage = 'No events found' }) => {
-  const { loading, filters, updateFilters } = useEvents();
-  const { userInterests, otherInterests } = useInterests();
+const EventList = ({
+  events,
+  title,
+  showFilter = false,
+  emptyMessage = 'No events found',
+  loading = false,
+  filters = { interests: [] },
+  updateFilters = () => {},
+  userInterests = [],
+  otherInterests = [],
+  signUpForEvent,
+  cancelSignup,
+  isSignedUp,
+}) => {
 
   const handleInterestFilter = (event) => {
     const value = event.target.value;
@@ -80,7 +89,13 @@ const EventList = ({ events, title, showFilter = false, emptyMessage = 'No event
         }}>
           {events.map((event) => (
             <Box key={event.id}>
-              <EventCard event={event} />
+              <EventCard
+                event={event}
+                signUpForEvent={signUpForEvent}
+                cancelSignup={cancelSignup}
+                isSignedUp={isSignedUp}
+                loading={loading}
+              />
             </Box>
           ))}
         </Box>

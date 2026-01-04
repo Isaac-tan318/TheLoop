@@ -10,12 +10,14 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { getEventById } from '../../api/events';
 import { useAuth } from '../../context/AuthContext';
 
-const EditEventPage = () => {
+const EditEventPage = ({ eventsProps, interestsProps }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { createEvent, updateEvent, loading, error } = eventsProps;
+  const { interests } = interestsProps;
   const [event, setEvent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -30,13 +32,13 @@ const EditEventPage = () => {
       } else {
         navigate('/organiser/dashboard');
       }
-      setLoading(false);
+      setPageLoading(false);
     };
 
     fetchEvent();
   }, [id, user, navigate]);
 
-  if (loading) {
+  if (pageLoading) {
     return <LoadingSpinner message="Loading event..." />;
   }
 
@@ -46,7 +48,14 @@ const EditEventPage = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 4 }}>
           Edit Event
         </Typography>
-        <EventForm event={event} />
+        <EventForm
+          event={event}
+          createEvent={createEvent}
+          updateEvent={updateEvent}
+          interests={interests}
+          loading={loading}
+          error={error}
+        />
       </Container>
     </Box>
   );

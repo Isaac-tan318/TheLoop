@@ -34,15 +34,13 @@ import {
   parseISO,
   isWithinInterval,
 } from 'date-fns';
-import { useEvents } from '../../context/EventsContext';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const EventCalendar = ({ onEventClick }) => {
+const EventCalendar = ({ events = [], onEventClick }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { events } = useEvents();
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
