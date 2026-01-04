@@ -16,6 +16,7 @@
 
 import api from './config';
 import { v4 as uuidv4 } from 'uuid';
+import { createReminderForSignup, deleteUserEventReminders, deleteEventReminders } from './reminders';
 
 /**
  * Get all events with optional client-side filtering
@@ -104,6 +105,8 @@ export const deleteEvent = async (eventId, organiserId) => {
       await api.delete(`/signups/${signup.id}`);
     }
   }
+  // Delete any associated reminders
+  await deleteEventReminders(eventId);
   
   return await api.delete(`/events/${eventId}`);
 };
@@ -136,6 +139,8 @@ export const signUpForEvent = async (eventId, user) => {
       await api.patch(`/events/${eventId}`, {
         signupCount: (eventResult.data.signupCount || 0) + 1
       });
+      // Create reminder for this signup
+      await createReminderForSignup(eventId, user);
     }
   }
   
@@ -163,6 +168,8 @@ export const cancelSignup = async (eventId, userId) => {
       await api.patch(`/events/${eventId}`, {
         signupCount: Math.max((eventResult.data.signupCount || 1) - 1, 0)
       });
+      // Remove any reminders for this user+event
+      await deleteUserEventReminders(eventId, userId);
     }
   }
   

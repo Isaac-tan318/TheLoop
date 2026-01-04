@@ -16,7 +16,6 @@ import { InterestsProvider } from './context/InterestsContext';
 // Components
 import Navbar from './components/common/Navbar';
 import ProtectedRoute from './components/common/ProtectedRoute';
-import ReminderNotification from './components/reminders/ReminderNotification';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -83,7 +82,6 @@ function AppContent() {
   return (
     <>
       <Navbar />
-      <ReminderNotification />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />

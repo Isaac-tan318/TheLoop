@@ -5,16 +5,19 @@
 
 import { useNavigate } from 'react-router-dom';
 import {
-  Snackbar,
-  Alert,
-  AlertTitle,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
   Box,
   Typography,
+  IconButton,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
   Event as EventIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useReminders } from '../../context/RemindersContext';
@@ -31,51 +34,45 @@ const ReminderNotification = () => {
   };
 
   return (
-    <Snackbar
-      open={showNotification}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      sx={{ mt: 8 }}
-    >
-      <Alert
-        severity="info"
-        icon={<NotificationsIcon />}
-        onClose={closeNotification}
-        sx={{
-          width: '100%',
-          maxWidth: 400,
-          backgroundColor: '#fef2f2',
-          border: '1px solid #dc2626',
-          '& .MuiAlert-icon': {
-            color: '#dc2626',
-          },
-        }}
-      >
-        <AlertTitle sx={{ fontWeight: 'bold' }}>Event Reminder</AlertTitle>
+    <Dialog open={showNotification} onClose={closeNotification} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <NotificationsIcon sx={{ color: '#dc2626' }} />
+        <Typography variant="h6" sx={{ fontWeight: 'bold', flex: 1 }}>
+          Event Reminder
+        </Typography>
+        <IconButton onClick={closeNotification} aria-label="close" size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent>
         <Box>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+          <Typography variant="body1" sx={{ mb: 1 }}>
             <strong>{activeReminder.eventTitle}</strong> starts in 24 hours!
           </Typography>
           {activeReminder.event && (
-            <Typography variant="caption" color="textSecondary">
+            <Typography variant="body2" color="textSecondary">
               {format(parseISO(activeReminder.eventStart), 'EEEE, MMM d \'at\' h:mm a')}
             </Typography>
           )}
         </Box>
-        <Box sx={{ mt: 1 }}>
-          <Button
-            size="small"
-            startIcon={<EventIcon />}
-            onClick={handleViewEvent}
-            sx={{
-              color: '#dc2626',
-              '&:hover': { backgroundColor: '#fee2e2' },
-            }}
-          >
-            View Event
-          </Button>
-        </Box>
-      </Alert>
-    </Snackbar>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={closeNotification} color="inherit">
+          Dismiss
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<EventIcon />}
+          onClick={handleViewEvent}
+          sx={{
+            backgroundColor: '#dc2626',
+            '&:hover': { backgroundColor: '#b91c1c' },
+          }}
+        >
+          View Event
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

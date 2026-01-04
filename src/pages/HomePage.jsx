@@ -5,6 +5,7 @@
 
 import { useMemo } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
+import ReminderNotification from '../components/reminders/ReminderNotification';
 import { Link } from 'react-router-dom';
 import EventList from '../components/events/EventList';
 import { useEvents } from "../context/EventsContext";
@@ -37,6 +38,7 @@ const HomePage = () => {
 
   return (
     <Box sx={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 64px)' }}>
+      <ReminderNotification />
       {/* Hero Section */}
       {!isAuthenticated && (
         <Box
