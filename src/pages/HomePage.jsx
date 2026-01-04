@@ -50,7 +50,7 @@ const HomePage = ({ eventsProps }) => {
           }}
         >
           <Container maxWidth="md">
-            <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 2 }}>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'left' }}>
               Discover Amazing Events
             </Typography>
             <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
@@ -89,30 +89,30 @@ const HomePage = ({ eventsProps }) => {
       )}
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Create Event Button for Organisers */}
-        {isOrganiser && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-            <Button
-              component={Link}
-              to="/organiser/events/new"
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{
-                backgroundColor: '#dc2626',
-                '&:hover': { backgroundColor: '#b91c1c' },
-              }}
-            >
-              Create Event
-            </Button>
-          </Box>
-        )}
+        {/* Create Event aligned with New events title */}
 
         {/* New Events Section */}
         {newEvents.length > 0 && (
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 3 }}>
-              New events
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>
+                New events
+              </Typography>
+              {isOrganiser && (
+                <Button
+                  component={Link}
+                  to="/organiser/events/new"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{
+                    backgroundColor: '#dc2626',
+                    '&:hover': { backgroundColor: '#b91c1c' },
+                  }}
+                >
+                  Create Event
+                </Button>
+              )}
+            </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
               {newEvents.map(event => (
                 <EventCard

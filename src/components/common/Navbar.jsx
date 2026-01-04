@@ -80,7 +80,10 @@ const Navbar = ({ reminders = [], updateFilters }) => {
             textDecoration: 'none',
             color: '#dc2626',
             fontWeight: 'bold',
+            border: 'none',
+            outline: 'none',
             '&:hover': { opacity: 0.8 },
+            '&:focus': { outline: 'none' },
           }}
         >
           TheLoop
@@ -179,7 +182,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
                   </Typography>
                 </MenuItem>
                 <MenuItem onClick={handleProfile}>Profile</MenuItem>
-                <MenuItem onClick={handleMyEvents}>My Events</MenuItem>
+                <MenuItem onClick={handleMyEvents}>Attending Events</MenuItem>
                 {user?.role === 'organiser' && (
                   <MenuItem onClick={() => { handleMenuClose(); navigate('/organiser/dashboard'); }}>
                     Organiser Dashboard

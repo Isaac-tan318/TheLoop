@@ -21,6 +21,8 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Grid,
+  Fab,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
@@ -31,6 +33,8 @@ import {
   Image as ImageIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  EventAvailable as SignUpIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
@@ -189,106 +193,71 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         </Box>
       </Box>
 
-      <Grid container spacing={4}>
-        {/* Main Content */}
-        <Grid item xs={12} md={8}>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 2 }}>
-            {event.title}
-          </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 3, mb: 3 }}>
+        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', wordWrap: 'break-word', hyphens: 'auto', maxWidth: '60%' }}>
+          {event.title}
+        </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <PersonIcon sx={{ color: '#6b7280', mr: 1 }} />
-            <Typography color="textSecondary">
-              Organised by {event.organiserName}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <LocationIcon sx={{ color: '#6b7280', mr: 1 }} />
-            <Typography color="textSecondary">{event.location}</Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <CalendarIcon sx={{ color: '#6b7280', mr: 1 }} />
-            <Typography color="textSecondary">
-              {format(parseISO(event.startDate), 'EEEE, d MMMM yyyy')}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <TimeIcon sx={{ color: '#6b7280', mr: 1 }} />
-            <Typography color="textSecondary">
-              {format(parseISO(event.startDate), 'h:mm a')} - {format(parseISO(event.endDate), 'h:mm a')}
-            </Typography>
-          </Box>
-
-          <Divider sx={{ mb: 3 }} />
-
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            About this Event
-          </Typography>
-          <Typography
-            sx={{
-              whiteSpace: 'pre-wrap',
-              color: '#4b5563',
-              lineHeight: 1.8,
-            }}
-          >
-            {event.description}
-          </Typography>
-        </Grid>
-
-        {/* Sidebar */}
-        <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 2, position: 'sticky', top: 80 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <GroupIcon sx={{ color: '#6b7280', mr: 1 }} />
-              <Typography>
-                {event.signupCount || 0} / {event.capacity} registered
-              </Typography>
+        <Paper elevation={2} sx={{ p: 2, borderRadius: 2, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Capacity indicator */}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <PersonIcon sx={{ color: '#6b7280', mr: 1 }} />
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>
+                  {event.signupCount || 0} / {event.capacity}
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  capacity
+                </Typography>
+              </Box>
             </Box>
 
             {!isOrganiser && (
               <>
                 {userSignedUp ? (
                   <Button
-                    fullWidth
                     variant="outlined"
                     onClick={() => setConfirmCancelOpen(true)}
                     sx={{
-                      py: 1.5,
+                      py: 1,
+                      px: 3,
+                      borderRadius: 2,
                       borderColor: '#dc2626',
                       color: '#dc2626',
+                      fontWeight: 'bold',
                       '&:hover': {
                         borderColor: '#b91c1c',
                         backgroundColor: '#fef2f2',
                       },
                     }}
                   >
-                    Signed Up ✓ (Click to Cancel)
+                    Signed Up ✓
                   </Button>
                 ) : (
                   <Button
-                    fullWidth
                     variant="contained"
                     onClick={handleSignup}
                     disabled={loading || event.isFull}
                     sx={{
-                      py: 1.5,
+                      py: 1,
+                      px: 3,
+                      borderRadius: 2,
                       backgroundColor: '#dc2626',
+                      fontWeight: 'bold',
                       '&:hover': { backgroundColor: '#b91c1c' },
                     }}
                   >
-                    {event.isFull ? 'Event Full' : 'Sign Up for Event'}
+                    {event.isFull ? 'Event Full' : 'Sign Up'}
                   </Button>
                 )}
               </>
             )}
 
             {isOrganiser && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
-                  fullWidth
+                  size="small"
                   variant="outlined"
                   startIcon={<GroupIcon />}
                   onClick={() => setShowSignups(true)}
@@ -297,30 +266,71 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                     color: '#dc2626',
                   }}
                 >
-                  View Signups ({signups.length})
+                  Signups ({signups.length})
                 </Button>
                 <Button
-                  fullWidth
+                  size="small"
                   variant="outlined"
                   startIcon={<EditIcon />}
                   onClick={() => navigate(`/organiser/events/${event.id}/edit`)}
                 >
-                  Edit Event
+                  Edit
                 </Button>
                 <Button
-                  fullWidth
+                  size="small"
                   variant="outlined"
                   startIcon={<DeleteIcon />}
                   onClick={() => setConfirmDeleteOpen(true)}
                   color="error"
                 >
-                  Delete Event
+                  Delete
                 </Button>
               </Box>
             )}
-          </Paper>
-        </Grid>
-      </Grid>
+          </Box>
+        </Paper>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <PersonIcon sx={{ color: '#6b7280', mr: 1 }} />
+        <Typography color="textSecondary">
+          Organised by {event.organiserName}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <LocationIcon sx={{ color: '#6b7280', mr: 1 }} />
+        <Typography color="textSecondary">{event.location}</Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <CalendarIcon sx={{ color: '#6b7280', mr: 1 }} />
+        <Typography color="textSecondary">
+          {format(parseISO(event.startDate), 'EEEE, d MMMM yyyy')}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <TimeIcon sx={{ color: '#6b7280', mr: 1 }} />
+        <Typography color="textSecondary">
+          {format(parseISO(event.startDate), 'h:mm a')} - {format(parseISO(event.endDate), 'h:mm a')}
+        </Typography>
+      </Box>
+
+      <Divider sx={{ mb: 3 }} />
+
+      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+        About this Event
+      </Typography>
+      <Typography
+        sx={{
+          whiteSpace: 'pre-wrap',
+          color: '#4b5563',
+          lineHeight: 1.8,
+        }}
+      >
+        {event.description}
+      </Typography>
 
       {/* Cancel Signup Dialog */}
       <Dialog open={confirmCancelOpen} onClose={() => setConfirmCancelOpen(false)}>
