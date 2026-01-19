@@ -1,10 +1,7 @@
-/**
- * Event Detail Component
- * Full event information display
- */
+ 
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -23,6 +20,10 @@ import {
   ListItemText,
   Grid,
   Fab,
+  TextField,
+  Select,
+  MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
@@ -38,12 +39,15 @@ import {
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
+import { useUI } from '../../context/UIContext';
 import * as eventsApi from '../../api/events';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const { notify } = useUI();
   
   const [event, setEvent] = useState(null);
   const [signups, setSignups] = useState([]);
@@ -52,8 +56,20 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [showSignups, setShowSignups] = useState(false);
   const [userSignedUp, setUserSignedUp] = useState(false);
+  const [signupFormOpen, setSignupFormOpen] = useState(false);
+  const [signupAnswers, setSignupAnswers] = useState({});
+  const [signupErrors, setSignupErrors] = useState({});
+  const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isOrganiser = user?.id === event?.organiserId;
+  const isPast = (() => {
+    try {
+      return event ? new Date(event.startDate) <= new Date() : false;
+    } catch {
+      return false;
+    }
+  })();
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -62,17 +78,30 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       if (result.success) {
         setEvent(result.data);
         
-        // Check signup status
+        
         if (user && isSignedUp) {
           const signedUp = await isSignedUp(eventId);
           setUserSignedUp(signedUp);
         }
         
-        // Fetch signups if organiser
+        
         if (user && result.data.organiserId === user.id) {
           const signupsResult = await eventsApi.getEventSignups(eventId, user.id);
           if (signupsResult.success) {
             setSignups(signupsResult.data);
+          }
+        }
+
+        
+        if (location?.state?.openSignup && Array.isArray(result.data.additionalFields) && result.data.additionalFields.length > 0) {
+          if (!isAuthenticated) {
+            navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
+          } else {
+            const init = {};
+            result.data.additionalFields.forEach(f => { init[f.id] = ''; });
+            setSignupAnswers(init);
+            setSignupErrors({});
+            setSignupFormOpen(true);
           }
         }
       } else {
@@ -83,10 +112,26 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
     fetchEvent();
   }, [eventId, user, navigate, isSignedUp]);
+  
+  useEffect(() => {}, [location?.state]);
 
   const handleSignup = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
+      return;
+    }
+
+    if (isPast) {
+      alert('Signups are closed because this event has already started.');
+      return;
+    }
+
+    if (event?.additionalFields && event.additionalFields.length > 0) {
+      const init = {};
+      event.additionalFields.forEach(f => { init[f.id] = ''; });
+      setSignupAnswers(init);
+      setSignupErrors({});
+      setSignupFormOpen(true);
       return;
     }
 
@@ -102,7 +147,32 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     }
   };
 
+  const handleSubmitSignupForm = async () => {
+    
+    const errs = {};
+    (event?.additionalFields || []).forEach(f => {
+      if (f.required && !String(signupAnswers[f.id] ?? '').trim()) {
+        errs[f.id] = 'Required';
+      }
+    });
+    setSignupErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    const result = await signUpForEvent(eventId, signupAnswers);
+    if (result.success) {
+      setUserSignedUp(true);
+      setEvent(prev => ({
+        ...prev,
+        signupCount: (prev.signupCount || 0) + 1,
+      }));
+      setSignupFormOpen(false);
+    } else {
+      alert(result.error);
+    }
+  };
+
   const handleCancelSignup = async () => {
+    setCancelling(true);
     const result = await cancelSignup(eventId);
     if (result.success) {
       setUserSignedUp(false);
@@ -114,15 +184,19 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     } else {
       alert(result.error);
     }
+    setCancelling(false);
   };
 
   const handleDelete = async () => {
+    setDeleting(true);
     const result = await deleteEvent(eventId);
     if (result.success) {
+      notify('Event deleted successfully!', 'success');
       navigate('/organiser/dashboard');
     } else {
-      alert(result.error);
+      notify(result.error || 'Failed to delete event.', 'error');
     }
+    setDeleting(false);
   };
 
   if (loadingEvent) {
@@ -145,7 +219,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
   return (
     <Box>
-      {/* Hero Image / Placeholder */}
+      
       <Box
         sx={{
           height: 300,
@@ -156,6 +230,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
           borderRadius: 2,
           mb: 4,
           position: 'relative',
+          overflow: 'hidden',
         }}
       >
         {event.imageUrl ? (
@@ -163,13 +238,13 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
             component="img"
             src={event.imageUrl}
             alt={event.title}
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 2 }}
+            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
           <ImageIcon sx={{ fontSize: 80, color: '#9ca3af' }} />
         )}
         
-        {/* Interest Tags */}
+        
         <Box
           sx={{
             position: 'absolute',
@@ -200,7 +275,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
         <Paper elevation={2} sx={{ p: 2, borderRadius: 2, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Capacity indicator */}
+            
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <PersonIcon sx={{ color: '#6b7280', mr: 1 }} />
               <Box>
@@ -235,10 +310,14 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                     Signed Up ✓
                   </Button>
                 ) : (
-                  <Button
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {Array.isArray(event?.additionalFields) && event.additionalFields.length > 0 && (
+                      <Chip label="Additional info required" color="default" size="small" />
+                    )}
+                    <Button
                     variant="contained"
                     onClick={handleSignup}
-                    disabled={loading || event.isFull}
+                    disabled={loading || event.isFull || isPast}
                     sx={{
                       py: 1,
                       px: 3,
@@ -247,9 +326,10 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                       fontWeight: 'bold',
                       '&:hover': { backgroundColor: '#b91c1c' },
                     }}
-                  >
-                    {event.isFull ? 'Event Full' : 'Sign Up'}
-                  </Button>
+                    >
+                      {isPast ? 'Signups closed' : (event.isFull ? 'Event Full' : 'Sign Up')}
+                    </Button>
+                  </Box>
                 )}
               </>
             )}
@@ -332,7 +412,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         {event.description}
       </Typography>
 
-      {/* Cancel Signup Dialog */}
+      
       <Dialog open={confirmCancelOpen} onClose={() => setConfirmCancelOpen(false)}>
         <DialogTitle>Cancel Signup?</DialogTitle>
         <DialogContent>
@@ -342,13 +422,87 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmCancelOpen(false)}>No, Keep</Button>
-          <Button onClick={handleCancelSignup} color="error" variant="contained">
-            Yes, Cancel
+          <Button onClick={handleCancelSignup} color="error" variant="contained" disabled={cancelling}
+            startIcon={cancelling ? <CircularProgress size={18} sx={{ color: 'white' }} /> : undefined}>
+            {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Event Dialog */}
+      
+      <Dialog open={signupFormOpen} onClose={() => setSignupFormOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Signup form</DialogTitle>
+        <DialogContent>
+          {(event?.additionalFields || []).length === 0 ? (
+            <Typography color="textSecondary">No additional information required.</Typography>
+          ) : (
+            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {event.additionalFields.map((field) => {
+                if (field.type === 'textarea') {
+                  return (
+                    <TextField
+                      key={field.id}
+                      label={field.label}
+                      value={signupAnswers[field.id] || ''}
+                      onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      multiline
+                      rows={4}
+                      required={!!field.required}
+                      error={!!signupErrors[field.id]}
+                      helperText={signupErrors[field.id]}
+                      fullWidth
+                    />
+                  );
+                }
+                if (field.type === 'select') {
+                  const opts = String(field.options || '').split(',').map(s => s.trim()).filter(Boolean);
+                  return (
+                    <Box key={field.id}>
+                      <Typography sx={{ mb: 1 }}>{field.label}{field.required ? ' *' : ''}</Typography>
+                      <Select
+                        fullWidth
+                        value={signupAnswers[field.id] || ''}
+                        onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                        error={!!signupErrors[field.id]}
+                      >
+                        <MenuItem value="">
+                          <em>Select...</em>
+                        </MenuItem>
+                        {opts.map(opt => (
+                          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                        ))}
+                      </Select>
+                      {signupErrors[field.id] && (
+                        <Typography variant="caption" color="error">{signupErrors[field.id]}</Typography>
+                      )}
+                    </Box>
+                  );
+                }
+                return (
+                  <TextField
+                    key={field.id}
+                    label={field.label}
+                    value={signupAnswers[field.id] || ''}
+                    onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                    required={!!field.required}
+                    error={!!signupErrors[field.id]}
+                    helperText={signupErrors[field.id]}
+                    fullWidth
+                  />
+                );
+              })}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSignupFormOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmitSignupForm} sx={{ backgroundColor: '#dc2626', '&:hover': { backgroundColor: '#b91c1c' } }}>
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      
       <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
         <DialogTitle>Delete Event?</DialogTitle>
         <DialogContent>
@@ -358,13 +512,14 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
-            Delete
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={18} sx={{ color: 'white' }} /> : undefined}>
+            {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* View Signups Dialog */}
+      
       <Dialog
         open={showSignups}
         onClose={() => setShowSignups(false)}
@@ -380,16 +535,31 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
           ) : (
             <List>
               {signups.map((signup) => (
-                <ListItem key={signup.id}>
+                <ListItem key={signup.id} alignItems="flex-start">
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: '#dc2626' }}>
                       {signup.userName?.charAt(0).toUpperCase()}
                     </Avatar>
                   </ListItemAvatar>
-                  <ListItemText
-                    primary={signup.userName}
-                    secondary={`${signup.userEmail} • Signed up ${format(parseISO(signup.signedUpAt), 'MMM d, yyyy')}`}
-                  />
+                  <Box sx={{ width: '100%' }}>
+                    <ListItemText
+                      primary={signup.userName}
+                      secondary={`${signup.userEmail} • Signed up ${format(parseISO(signup.signedUpAt), 'MMM d, yyyy')}`}
+                    />
+                    {signup.additionalInfo && Object.keys(signup.additionalInfo).length > 0 && (
+                      <Box sx={{ mt: 0.5, ml: 0.5 }}>
+                        {event?.additionalFields?.map((field) => {
+                          const answer = signup.additionalInfo[field.id];
+                          if (answer == null || String(answer).trim() === '') return null;
+                          return (
+                            <Typography key={`${signup.id}-${field.id}`} variant="caption" sx={{ display: 'block', color: '#374151' }}>
+                              {field.label}: {String(answer)}
+                            </Typography>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
                 </ListItem>
               ))}
             </List>

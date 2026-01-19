@@ -1,27 +1,25 @@
-/**
- * Main App Component
- * Sets up routing, providers, and global components
- */
+ 
 
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// Context Providers
+ 
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { UIProvider } from './context/UIContext';
 
-// API
+ 
 import * as eventsApi from './api/events';
 import * as remindersApi from './api/reminders';
 import { getInterestsFromEvents } from './api/interests';
 
-// Components
+ 
 import Navbar from './components/common/Navbar';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ReminderNotification from './components/reminders/ReminderNotification';
 
-// Pages
+ 
 import HomePage from './pages/HomePage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
@@ -34,8 +32,10 @@ import RemindersPage from './pages/RemindersPage';
 import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
 import CreateEventPage from './pages/organiser/CreateEventPage';
 import EditEventPage from './pages/organiser/EditEventPage';
+import NotFoundPage from './pages/NotFoundPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
 
-// MUI Theme with red primary color
+ 
 const theme = createTheme({
   palette: {
     primary: {
@@ -85,25 +85,25 @@ const theme = createTheme({
 function AppContent() {
   const { user } = useAuth();
 
-  // ─── Events state ───────────────────────────────────────────────────────────
+  
   const [allEvents, setAllEvents] = useState([]);
   const [events, setEvents] = useState([]);
   const [userSignups, setUserSignups] = useState([]);
   const [organiserEvents, setOrganiserEvents] = useState([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [filters, setFilters] = useState({ interests: [], searchQuery: '', startDate: null, endDate: null });
 
-  // ─── Reminders state ────────────────────────────────────────────────────────
+  
   const [reminders, setReminders] = useState([]);
   const [activeReminder, setActiveReminder] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
 
-  // ─── Interests (derived) ────────────────────────────────────────────────────
+  
   const userInterests = (user?.interests || []).sort();
   const eventInterests = getInterestsFromEvents(allEvents);
   const otherInterests = eventInterests.filter(i => !userInterests.includes(i));
 
-  // ─── Fetch events ───────────────────────────────────────────────────────────
+  
   const fetchEvents = useCallback(async () => {
     setEventsLoading(true);
     const result = await eventsApi.getAllEvents({
@@ -121,7 +121,7 @@ function AppContent() {
     fetchEvents();
   }, [fetchEvents]);
 
-  // Filter by interests client-side
+  
   useEffect(() => {
     if (filters.interests.length === 0) {
       setEvents(allEvents);
@@ -130,7 +130,7 @@ function AppContent() {
     }
   }, [allEvents, filters.interests]);
 
-  // ─── User signups ───────────────────────────────────────────────────────────
+  
   const fetchUserSignups = useCallback(async () => {
     if (!user) return;
     const result = await eventsApi.getUserSignups(user.id);
@@ -141,7 +141,7 @@ function AppContent() {
     fetchUserSignups();
   }, [fetchUserSignups]);
 
-  // ─── Organiser events ───────────────────────────────────────────────────────
+  
   const fetchOrganiserEvents = useCallback(async () => {
     if (!user || user.role !== 'organiser') return;
     const result = await eventsApi.getEventsByOrganiser(user.id);
@@ -152,7 +152,7 @@ function AppContent() {
     fetchOrganiserEvents();
   }, [fetchOrganiserEvents]);
 
-  // ─── Reminders polling ──────────────────────────────────────────────────────
+  
   useEffect(() => {
     if (!user) {
       setReminders([]);
@@ -196,10 +196,10 @@ function AppContent() {
     setShowNotification(false);
   }, [activeReminder, dismissReminder]);
 
-  // ─── Signup helpers ─────────────────────────────────────────────────────────
-  const signUpForEvent = useCallback(async (eventId) => {
+  
+  const signUpForEvent = useCallback(async (eventId, additionalInfo = null) => {
     if (!user) return { success: false, error: 'Not logged in' };
-    const result = await eventsApi.signUpForEvent(eventId, user);
+    const result = await eventsApi.signUpForEvent(eventId, user, additionalInfo);
     if (result.success) {
       await fetchEvents();
       await fetchUserSignups();
@@ -223,7 +223,7 @@ function AppContent() {
     return res.success ? res.data : false;
   }, [user]);
 
-  // ─── Event CRUD helpers ─────────────────────────────────────────────────────
+  
   const createEvent = useCallback(async (data) => {
     if (!user) return { success: false };
     const res = await eventsApi.createEvent(data, user);
@@ -256,7 +256,7 @@ function AppContent() {
     setFilters(prev => ({ ...prev, ...newFilters }));
   }, []);
 
-  // Build props objects to pass down
+  
   const eventsProps = {
     events,
     allEvents,
@@ -303,7 +303,7 @@ function AppContent() {
         closeNotification={closeNotification}
       />
       <Routes>
-        {/* Public Routes */}
+        
         <Route path="/" element={<HomePage eventsProps={eventsProps} />} />
         <Route path="/events" element={<EventsPage eventsProps={eventsProps} interestsProps={interestsProps} />} />
         <Route path="/events/:id" element={<EventDetailPage eventsProps={eventsProps} />} />
@@ -311,7 +311,7 @@ function AppContent() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected Routes - Any Authenticated User */}
+        
         <Route
           path="/profile"
           element={
@@ -337,7 +337,7 @@ function AppContent() {
           }
         />
 
-        {/* Protected Routes - Organiser Only */}
+        
         <Route
           path="/organiser/dashboard"
           element={
@@ -363,8 +363,10 @@ function AppContent() {
           }
         />
 
-        {/* Catch all - redirect to home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        
+        {/* Error Pages */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   );
@@ -376,7 +378,9 @@ function App() {
       <CssBaseline />
       <Router>
         <AuthProvider>
-          <AppContent />
+          <UIProvider>
+            <AppContent />
+          </UIProvider>
         </AuthProvider>
       </Router>
     </ThemeProvider>

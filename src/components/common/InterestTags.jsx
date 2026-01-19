@@ -11,6 +11,7 @@ import {
   Typography,
   Autocomplete,
   FormHelperText,
+  Button,
 } from '@mui/material';
 
 const InterestTags = ({
@@ -109,6 +110,31 @@ const InterestTags = ({
           );
         }}
       />
+      {allowCreate && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+          <Button
+            variant="contained"
+            size="small"
+            disabled={
+              !inputValue ||
+              selected.includes(inputValue) ||
+              selected.length >= maxSelections
+            }
+            onClick={() => {
+              if (!selected.includes(inputValue) && inputValue) {
+                onChange([...selected, inputValue]);
+                setInputValue('');
+              }
+            }}
+            sx={{
+              backgroundColor: '#dc2626',
+              '&:hover': { backgroundColor: '#b91c1c' },
+            }}
+          >
+            Add Interest
+          </Button>
+        </Box>
+      )}
       {selected.length >= maxSelections && (
         <FormHelperText>
           Maximum {maxSelections} interests can be selected

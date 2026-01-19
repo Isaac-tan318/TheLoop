@@ -1,7 +1,4 @@
-/**
- * Authentication Context
- * Manages user authentication state
- */
+ 
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as authApi from '../api/auth';
@@ -22,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Initialize storage and check for existing session
+  
   useEffect(() => {
     const initAuth = async () => {
       initializeStorage();

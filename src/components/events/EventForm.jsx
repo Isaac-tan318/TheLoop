@@ -1,7 +1,4 @@
-/**
- * Event Form Component
- * Form for creating and editing events (for organisers)
- */
+ 
 
 import { useState, useEffect } from 'react';
 import {
@@ -12,14 +9,24 @@ import {
   Alert,
   Paper,
   Grid,
+  Select,
+  MenuItem,
+  IconButton,
+  Divider,
+  FormControlLabel,
+  Checkbox,
+  CircularProgress,
 } from '@mui/material';
+import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { eventSchema, validateForm } from '../../utils/validation';
 import InterestTags from '../common/InterestTags';
 import { format, parseISO } from 'date-fns';
+import { useUI } from '../../context/UIContext';
 
 const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interests = [], loading = false, error = null }) => {
   const navigate = useNavigate();
+  const { notify } = useUI();
   
   const isEditing = !!event;
   
@@ -31,6 +38,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
     endDate: '',
     capacity: 50,
     interests: [],
+    additionalFields: [],
   });
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -45,6 +53,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
         endDate: format(parseISO(event.endDate), "yyyy-MM-dd'T'HH:mm"),
         capacity: event.capacity,
         interests: event.interests,
+        additionalFields: event.additionalFields || [],
       });
     }
   }, [event]);
@@ -69,34 +78,62 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
     }
   };
 
+  const addAdditionalField = () => {
+    setFormData(prev => ({
+      ...prev,
+      additionalFields: [
+        ...prev.additionalFields,
+        { id: Date.now().toString(), label: '', type: 'text', required: false, options: '' },
+      ],
+    }));
+  };
+
+  const updateAdditionalField = (id, key, value) => {
+    setFormData(prev => ({
+      ...prev,
+      additionalFields: prev.additionalFields.map(f => f.id === id ? { ...f, [key]: value } : f),
+    }));
+  };
+
+  const removeAdditionalField = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      additionalFields: prev.additionalFields.filter(f => f.id !== id),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // For editing, we skip the future date validation
+    
     const dataToValidate = {
       ...formData,
       capacity: Number(formData.capacity),
     };
 
-    // Custom validation for editing (skip future date check if date hasn't changed)
+    
     if (!isEditing) {
       const validation = validateForm(eventSchema, dataToValidate);
       if (!validation.success) {
         setErrors(validation.errors);
+        setSubmitError('Please fix the highlighted fields before submitting.');
         return;
       }
     } else {
-      // Basic validation for editing
+      
       if (!formData.title || formData.title.length < 3) {
         setErrors({ title: 'Title must be at least 3 characters' });
+        setSubmitError('Please fix the highlighted fields before submitting.');
         return;
       }
       if (!formData.description || formData.description.length < 10) {
         setErrors({ description: 'Description must be at least 10 characters' });
+        setSubmitError('Please fix the highlighted fields before submitting.');
         return;
       }
       if (!formData.interests || formData.interests.length === 0) {
         setErrors({ interests: 'Please select at least one interest' });
+        setSubmitError('Please fix the highlighted fields before submitting.');
         return;
       }
     }
@@ -105,6 +142,13 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
       ...formData,
       startDate: new Date(formData.startDate).toISOString(),
       endDate: new Date(formData.endDate).toISOString(),
+      additionalFields: (formData.additionalFields || []).map(f => ({
+        id: f.id,
+        label: f.label.trim(),
+        type: f.type,
+        required: !!f.required,
+        options: f.type === 'select' ? String(f.options || '') : undefined,
+      })),
     };
 
     let result;
@@ -115,12 +159,14 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
     }
 
     if (result.success) {
+      notify(isEditing ? 'Event updated successfully!' : 'Event created successfully!', 'success');
       if (onSuccess) {
         onSuccess(result.data);
       } else {
         navigate('/organiser/dashboard');
       }
     } else {
+      notify(result.error || (isEditing ? 'Failed to update event.' : 'Failed to create event.'), 'error');
       setSubmitError(result.error);
     }
   };
@@ -128,7 +174,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
   return (
     <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
       <Typography variant="h5" component="h2" sx={{ mb: 3, fontWeight: 'bold' }}>
-        {isEditing ? 'Edit Event' : 'Create New Event'}
+        {isEditing ? 'Edit Event' : ''}
       </Typography>
 
       {(submitError || error) && (
@@ -237,6 +283,80 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
           </Typography>
         </Box>
 
+        <Divider sx={{ my: 3 }} />
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+          Signup Form (optional)
+        </Typography>
+        <Typography color="textSecondary" sx={{ mb: 2 }}>
+          Add questions to collect extra info from students when they sign up.
+        </Typography>
+
+        {formData.additionalFields?.map((field) => (
+          <Paper key={field.id} variant="outlined" sx={{ p: 2, mb: 2 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label="Question label"
+                  value={field.label}
+                  onChange={(e) => updateAdditionalField(field.id, 'label', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Select
+                  fullWidth
+                  value={field.type}
+                  onChange={(e) => updateAdditionalField(field.id, 'type', e.target.value)}
+                >
+                  <MenuItem value="text">Short text</MenuItem>
+                  <MenuItem value="textarea">Long text</MenuItem>
+                  <MenuItem value="select">Select</MenuItem>
+                </Select>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={!!field.required}
+                      onChange={(e) => updateAdditionalField(field.id, 'required', e.target.checked)}
+                    />
+                  }
+                  label="Required"
+                />
+              </Grid>
+              <Grid item xs={12} md={1} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                <IconButton color="error" onClick={() => removeAdditionalField(field.id)} aria-label="Remove question">
+                  <DeleteIcon />
+                </IconButton>
+              </Grid>
+
+              {field.type === 'select' && (
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Options (comma-separated)"
+                    value={field.options || ''}
+                    onChange={(e) => updateAdditionalField(field.id, 'options', e.target.value)}
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </Paper>
+        ))}
+
+        <Box sx={{ mb: 4 }}>
+          <Button startIcon={<AddIcon />} onClick={addAdditionalField}>
+            Add question
+          </Button>
+        </Box>
+
+        {/* Inline submit error above buttons */}
+        {submitError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {submitError}
+          </Alert>
+        )}
+
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
           <Button
             onClick={() => navigate('/organiser/dashboard')}
@@ -253,7 +373,14 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
               '&:hover': { backgroundColor: '#b91c1c' },
             }}
           >
-            {loading ? 'Saving...' : isEditing ? 'Update Event' : 'Create Event'}
+            {loading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={18} sx={{ color: 'white' }} />
+                Saving...
+              </Box>
+            ) : (
+              isEditing ? 'Update Event' : 'Create Event'
+            )}
           </Button>
         </Box>
       </Box>

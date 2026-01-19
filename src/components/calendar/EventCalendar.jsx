@@ -1,7 +1,4 @@
-/**
- * Event Calendar Component
- * Full-featured calendar view of events
- */
+ 
 
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -37,7 +34,7 @@ import {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const EventCalendar = ({ events = [], onEventClick }) => {
+const EventCalendar = ({ events = [], signedUpEventIds = [], onEventClick }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -64,7 +61,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
     }
   };
 
-  // Generate calendar days
+  
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
@@ -82,13 +79,13 @@ const EventCalendar = ({ events = [], onEventClick }) => {
     return days;
   }, [currentMonth]);
 
-  // Get events for a specific day
+  
   const getEventsForDay = (day) => {
     return events.filter(event => {
       const eventStart = parseISO(event.startDate);
       const eventEnd = parseISO(event.endDate);
       
-      // Check if the day falls within the event's date range
+      
       return isWithinInterval(day, { start: eventStart, end: eventEnd }) ||
         isSameDay(day, eventStart) ||
         isSameDay(day, eventEnd);
@@ -99,7 +96,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
 
   return (
     <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-      {/* Calendar Header */}
+      
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton onClick={handlePrevMonth}>
@@ -119,7 +116,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
         </Tooltip>
       </Box>
 
-      {/* Weekday Headers */}
+      
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
         {WEEKDAYS.map((day) => (
           <Box key={day}>
@@ -138,7 +135,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
         ))}
       </Box>
 
-      {/* Calendar Grid */}
+      
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', border: '1px solid #e5e7eb', borderRadius: 1 }}>
         {calendarDays.map((day, index) => {
           const dayEvents = getEventsForDay(day);
@@ -163,7 +160,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
                   height: '100%',
                 }}
               >
-                {/* Day Number */}
+                
                 <Typography
                   variant="body2"
                   sx={{
@@ -182,7 +179,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
                   {format(day, 'd')}
                 </Typography>
 
-                {/* Events */}
+                
                 <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
                   {dayEvents.slice(0, isMobile ? 1 : 2).map((event) => (
                     <Tooltip key={event.id} title={event.title} arrow>
@@ -198,7 +195,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
                           mb: 0.25,
                           height: 20,
                           fontSize: '0.65rem',
-                          backgroundColor: '#dc2626',
+                          backgroundColor: signedUpEventIds.includes(event.id) ? '#16a34a' : '#dc2626',
                           color: 'white',
                           cursor: 'pointer',
                           '& .MuiChip-label': {
@@ -207,7 +204,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
                             textOverflow: 'ellipsis',
                           },
                           '&:hover': {
-                            backgroundColor: '#b91c1c',
+                            backgroundColor: signedUpEventIds.includes(event.id) ? '#15803d' : '#b91c1c',
                           },
                         }}
                       />
@@ -233,7 +230,7 @@ const EventCalendar = ({ events = [], onEventClick }) => {
         })}
       </Box>
 
-      {/* Legend */}
+      
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box
@@ -246,6 +243,19 @@ const EventCalendar = ({ events = [], onEventClick }) => {
           />
           <Typography variant="caption" color="textSecondary">
             Event
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              backgroundColor: '#16a34a',
+              borderRadius: 0.5,
+            }}
+          />
+          <Typography variant="caption" color="textSecondary">
+            Signed up
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

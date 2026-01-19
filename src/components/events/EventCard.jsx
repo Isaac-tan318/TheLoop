@@ -1,7 +1,4 @@
-/**
- * Event Card Component
- * Displays event information in a card format
- */
+ 
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +16,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
@@ -35,8 +33,15 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
   const [userSignedUp, setUserSignedUp] = useState(false);
 
   const isOrganiser = user?.id === event.organiserId;
+  const isPast = (() => {
+    try {
+      return new Date(event.startDate) <= new Date();
+    } catch {
+      return false;
+    }
+  })();
 
-  // Check signup status
+  
   useEffect(() => {
     if (isSignedUp && user) {
       (async () => {
@@ -49,6 +54,17 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
   const handleSignup = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: `/events/${event.id}` } } });
+      return;
+    }
+
+    if (isPast) {
+      alert('Signups are closed because this event has already started.');
+      return;
+    }
+
+    if (Array.isArray(event.additionalFields) && event.additionalFields.length > 0) {
+      
+      navigate(`/events/${event.id}`, { state: { openSignup: true } });
       return;
     }
 
@@ -100,7 +116,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
         }}
         onClick={() => navigate(`/events/${event.id}`)}
       >
-        {/* Event Image */}
+        
         <Box
           sx={{
             height: 160,
@@ -109,6 +125,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
+            overflow: 'hidden',
           }}
         >
           {event.imageUrl ? (
@@ -117,6 +134,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
               height="160"
               image={event.imageUrl}
               alt={event.title}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
             <Box
@@ -131,7 +149,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
             </Box>
           )}
           
-          {/* Interest Tags Overlay */}
+          
           <Box
             sx={{
               position: 'absolute',
@@ -242,7 +260,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
                   e.stopPropagation();
                   handleSignup();
                 }}
-                disabled={loading || event.isFull}
+                disabled={loading || event.isFull || isPast}
                 sx={{
                   borderColor: '#000',
                   color: '#000',
@@ -253,14 +271,21 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
                   },
                 }}
               >
-                {event.isFull ? 'Event Full' : 'Sign up'}
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', width: '100%' }}>
+                    <CircularProgress size={18} />
+                    Loading...
+                  </Box>
+                ) : (
+                  isPast ? 'Signups closed' : (event.isFull ? 'Event Full' : 'Sign up')
+                )}
               </Button>
             )}
           </CardActions>
         )}
       </Card>
 
-      {/* Cancel Signup Confirmation Dialog */}
+      
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Cancel Signup?</DialogTitle>
         <DialogContent>

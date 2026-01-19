@@ -1,7 +1,4 @@
-/**
- * Local Storage Data Layer
- * Handles all persistent data storage operations
- */
+ 
 
 const STORAGE_KEYS = {
   USERS: 'theloop_users',
@@ -12,7 +9,7 @@ const STORAGE_KEYS = {
   INTERESTS: 'theloop_interests',
 };
 
-// Helper functions for localStorage
+ 
 const getItem = (key) => {
   try {
     const item = localStorage.getItem(key);
@@ -43,13 +40,13 @@ const removeItem = (key) => {
   }
 };
 
-// Initialize default data
+ 
 const initializeStorage = () => {
   if (!getItem(STORAGE_KEYS.USERS)) {
     setItem(STORAGE_KEYS.USERS, []);
   }
   if (!getItem(STORAGE_KEYS.EVENTS)) {
-    // Sample events for demonstration
+    
     setItem(STORAGE_KEYS.EVENTS, [
       {
         id: '1',
@@ -127,7 +124,7 @@ const initializeStorage = () => {
   }
 };
 
-// User operations
+ 
 const userStorage = {
   getAll: () => getItem(STORAGE_KEYS.USERS) || [],
   
@@ -162,7 +159,7 @@ const userStorage = {
   },
 };
 
-// Session operations
+ 
 const sessionStorage = {
   getCurrentUser: () => getItem(STORAGE_KEYS.CURRENT_USER),
   
@@ -171,7 +168,7 @@ const sessionStorage = {
   clearCurrentUser: () => removeItem(STORAGE_KEYS.CURRENT_USER),
 };
 
-// Event operations
+ 
 const eventStorage = {
   getAll: () => getItem(STORAGE_KEYS.EVENTS) || [],
   
@@ -216,7 +213,7 @@ const eventStorage = {
   },
 };
 
-// Signup operations
+ 
 const signupStorage = {
   getAll: () => getItem(STORAGE_KEYS.SIGNUPS) || [],
   
@@ -250,7 +247,7 @@ const signupStorage = {
   },
 };
 
-// Reminder operations
+ 
 const reminderStorage = {
   getAll: () => getItem(STORAGE_KEYS.REMINDERS) || [],
   
@@ -295,7 +292,7 @@ const reminderStorage = {
   },
 };
 
-// Interest operations
+ 
 const interestStorage = {
   getAll: () => getItem(STORAGE_KEYS.INTERESTS) || [],
   

@@ -21,6 +21,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Visibility,
@@ -45,7 +46,7 @@ const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student',
+    role: '',
     interests: [],
   });
   const [errors, setErrors] = useState({});
@@ -90,6 +91,11 @@ const RegisterForm = () => {
         stepErrors.confirmPassword = "Passwords don't match";
       }
     }
+    if (step === 1) {
+      if (!formData.role) {
+        stepErrors.role = 'Please select a role';
+      }
+    }
     
     return stepErrors;
   };
@@ -109,6 +115,16 @@ const RegisterForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // If not on final step, validate current step and advance instead of submitting
+    if (activeStep !== steps.length - 1) {
+      const stepErrors = validateStep(activeStep);
+      if (Object.keys(stepErrors).length > 0) {
+        setErrors(stepErrors);
+        return;
+      }
+      setActiveStep((prev) => prev + 1);
+      return;
+    }
     
     const validation = validateForm(registerSchema, formData);
     if (!validation.success) {
@@ -326,6 +342,11 @@ const RegisterForm = () => {
                     label="Event Organiser"
                   />
                 </RadioGroup>
+                  {errors.role && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                      {errors.role}
+                    </Typography>
+                  )}
               </FormControl>
 
               <Box sx={{ mb: 3 }}>
@@ -363,7 +384,14 @@ const RegisterForm = () => {
                   '&:hover': { backgroundColor: '#b91c1c' },
                 }}
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={18} sx={{ color: 'white' }} />
+                    Creating Account...
+                  </Box>
+                ) : (
+                  'Create Account'
+                )}
               </Button>
             ) : (
               <Button

@@ -13,6 +13,7 @@ import {
   Paper,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import {
   Visibility,
@@ -181,7 +182,14 @@ const LoginForm = () => {
               '&:disabled': { backgroundColor: '#fca5a5' },
             }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                <CircularProgress size={18} sx={{ color: 'white' }} />
+                Signing in...
+              </Box>
+            ) : (
+              'Sign In'
+            )}
           </Button>
 
           <Typography

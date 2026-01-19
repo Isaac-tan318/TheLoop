@@ -1,11 +1,8 @@
-/**
- * Validation Schemas using Zod
- * Form validation for all forms in the application
- */
+ 
 
 import { z } from 'zod';
 
-// Auth Schemas
+ 
 export const loginSchema = z.object({
   email: z
     .string()
@@ -60,7 +57,7 @@ export const changePasswordSchema = z.object({
   path: ['confirmNewPassword'],
 });
 
-// Profile Schema
+ 
 export const profileSchema = z.object({
   name: z
     .string()
@@ -70,7 +67,7 @@ export const profileSchema = z.object({
   interests: z.array(z.string()).optional(),
 });
 
-// Event Schemas
+ 
 export const eventSchema = z.object({
   title: z
     .string()
@@ -105,7 +102,7 @@ export const eventSchema = z.object({
   path: ['endDate'],
 });
 
-// Search/Filter Schema
+ 
 export const filterSchema = z.object({
   searchQuery: z.string().optional(),
   interests: z.array(z.string()).optional(),
@@ -113,7 +110,7 @@ export const filterSchema = z.object({
   endDate: z.string().optional(),
 });
 
-// Helper function to validate form data
+ 
 export const validateForm = (schema, data) => {
   try {
     schema.parse(data);
@@ -124,7 +121,12 @@ export const validateForm = (schema, data) => {
       const zodErrors = error.errors || error.issues || [];
       zodErrors.forEach((err) => {
         const path = err.path.join('.') || 'form';
-        errors[path] = err.message;
+        // Friendly message override for role selection
+        if (path === 'role') {
+          errors[path] = 'Please select a role';
+        } else {
+          errors[path] = err.message;
+        }
       });
       return { success: false, errors };
     }
@@ -132,7 +134,7 @@ export const validateForm = (schema, data) => {
   }
 };
 
-// Helper function to validate a single field
+ 
 export const validateField = (schema, field, value, formData = {}) => {
   try {
     const dataToValidate = { ...formData, [field]: value };

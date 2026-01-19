@@ -1,11 +1,10 @@
-/**
- * Events Page
- * Browse and search all events
- */
+ 
 
-import { Container, Typography, Box, FormControl, Select, MenuItem, InputLabel, ListSubheader } from '@mui/material';
+import { Container, Typography, Box, FormControl, Select, MenuItem, InputLabel, ListSubheader, Button } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import EventCard from '../components/events/EventCard';
 import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const EventsPage = ({ eventsProps, interestsProps }) => {
   const { events, allEvents, loading, filters, updateFilters, signUpForEvent, cancelSignup, isSignedUp } = eventsProps;
@@ -21,9 +20,21 @@ const EventsPage = ({ eventsProps, interestsProps }) => {
     <Box sx={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 64px)' }}>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-            All Events
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {filters.searchQuery && (
+              <Button
+                variant="text"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => window.history.back()}
+                sx={{ color: '#dc2626', mr: 1, '&:hover': { backgroundColor: '#fef2f2' } }}
+              >
+                Back
+              </Button>
+            )}
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+              All Events
+            </Typography>
+          </Box>
           
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Filter by Interest</InputLabel>
@@ -54,8 +65,22 @@ const EventsPage = ({ eventsProps, interestsProps }) => {
             </Select>
           </FormControl>
         </Box>
+
+        {(filters.searchQuery || (filters.interests && filters.interests.length > 0)) && (
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            {filters.searchQuery ? (
+              <>Results for "{filters.searchQuery}"</>
+            ) : null}
+            {filters.searchQuery && filters.interests && filters.interests.length > 0 ? ' • ' : ''}
+            {filters.interests && filters.interests.length > 0 ? (
+              <>Interest: {filters.interests[0]}</>
+            ) : null}
+          </Typography>
+        )}
         
-        {events.length === 0 ? (
+        {loading && events.length === 0 ? (
+          <LoadingSpinner message="Loading events..." />
+        ) : events.length === 0 ? (
           <Box
             sx={{
               textAlign: 'center',

@@ -1,7 +1,4 @@
-/**
- * Event List Component
- * Displays a grid of event cards with filtering
- */
+ 
 
 import { Box, Typography, FormControl, Select, MenuItem, InputLabel, ListSubheader } from '@mui/material';
 import EventCard from './EventCard';

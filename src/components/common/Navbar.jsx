@@ -1,7 +1,4 @@
-/**
- * Navbar Component
- * Main navigation header for the application
- */
+ 
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -71,7 +68,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
   return (
     <AppBar position="sticky" sx={{ backgroundColor: 'white', color: 'black', boxShadow: 1 }}>
       <Toolbar sx={{ justifyContent: 'space-between' }}>
-        {/* Logo */}
+        
         <Typography
           variant="h5"
           component={Link}
@@ -89,7 +86,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
           TheLoop
         </Typography>
 
-        {/* Navigation Links & Search */}
+        
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Button
             component={Link}
@@ -100,7 +97,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
             Calendar
           </Button>
 
-          {/* Search Bar */}
+          
           <Box
             component="form"
             onSubmit={handleSearch}
@@ -131,7 +128,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
             Events
           </Button>
 
-          {/* Dashboard Button for Organisers */}
+          
           {isAuthenticated && user?.role === 'organiser' && (
             <Button
               component={Link}
@@ -146,7 +143,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
             </Button>
           )}
 
-          {/* Notifications */}
+          
           {isAuthenticated && (
             <IconButton
               component={Link}
@@ -159,7 +156,7 @@ const Navbar = ({ reminders = [], updateFilters }) => {
             </IconButton>
           )}
 
-          {/* User Menu / Auth Buttons */}
+          
           {isAuthenticated ? (
             <>
               <IconButton onClick={handleMenuOpen}>

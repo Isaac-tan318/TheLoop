@@ -5,6 +5,9 @@
 // Base URL for the backend API
 export const API_BASE_URL = 'http://localhost:3001';
 
+// API route prefix
+export const API_PREFIX = '/api';
+
 // Default request options
 const defaultOptions = {
   headers: {
@@ -36,22 +39,35 @@ export const apiRequest = async (endpoint, options = {}) => {
   };
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const response = await fetch(`${API_BASE_URL}${API_PREFIX}${endpoint}`, config);
     
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized - just clear storage, don't redirect (let React Router handle it)
     if (response.status === 401) {
       localStorage.removeItem('theloop_token');
       localStorage.removeItem('theloop_user');
-      window.location.href = '/login';
       return { success: false, error: 'Session expired. Please login again.' };
     }
 
-    const data = await response.json();
+    // Handle 204 No Content (e.g., DELETE responses)
+    if (response.status === 204) {
+      return { success: true, data: null };
+    }
+
+    // Try to parse JSON, handle empty responses gracefully
+    let data = null;
+    const text = await response.text();
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // Response wasn't JSON, that's okay for some endpoints
+      }
+    }
 
     if (!response.ok) {
       return { 
         success: false, 
-        error: data.message || data.error || 'An error occurred' 
+        error: data?.message || data?.error || 'An error occurred' 
       };
     }
 
