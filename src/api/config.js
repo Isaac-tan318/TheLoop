@@ -45,6 +45,11 @@ export const apiRequest = async (endpoint, options = {}) => {
     if (response.status === 401) {
       localStorage.removeItem('theloop_token');
       localStorage.removeItem('theloop_user');
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('theloop:unauthorized', { detail: { endpoint } }));
+        }
+      } catch {}
       return { success: false, error: 'Session expired. Please login again.' };
     }
 

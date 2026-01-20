@@ -32,6 +32,51 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
+
+    // Listen for unauthorized events from API layer to force re-login
+    const onUnauthorized = () => {
+      setUser(null);
+      setLoading(false);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('theloop:unauthorized', onUnauthorized);
+    }
+
+    // Periodically check token expiry to proactively log out
+    const interval = setInterval(() => {
+      try {
+        const token = localStorage.getItem('theloop_token');
+        if (!token) return;
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+          localStorage.removeItem('theloop_token');
+          localStorage.removeItem('theloop_user');
+          onUnauthorized();
+          return;
+        }
+        const pad = (s) => s + '='.repeat((4 - (s.length % 4)) % 4);
+        const b64 = pad(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        const decoded = typeof window !== 'undefined' ? window.atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+        const bytes = Uint8Array.from(decoded, c => c.charCodeAt(0));
+        const json = new TextDecoder('utf-8').decode(bytes);
+        const payload = JSON.parse(json);
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (!payload.exp || payload.exp <= nowSec) {
+          localStorage.removeItem('theloop_token');
+          localStorage.removeItem('theloop_user');
+          onUnauthorized();
+        }
+      } catch {
+        // Ignore decode errors
+      }
+    }, 30000); // 30s cadence
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('theloop:unauthorized', onUnauthorized);
+      }
+      clearInterval(interval);
+    };
   }, []);
 
   const login = useCallback(async (email, password) => {

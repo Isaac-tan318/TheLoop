@@ -169,10 +169,7 @@ function AppContent() {
       }
     };
     const cleanup = remindersApi.startReminderPolling(user.id, handleReminder);
-    (async () => {
-      const res = await remindersApi.getUserReminders(user.id);
-      if (res.success) setReminders(res.data);
-    })();
+    refreshReminders();
     return cleanup;
   }, [user]);
 
@@ -196,6 +193,12 @@ function AppContent() {
     setShowNotification(false);
   }, [activeReminder, dismissReminder]);
 
+  const refreshReminders = useCallback(async () => {
+    if (!user) return;
+    const res = await remindersApi.getUserReminders(user.id);
+    if (res.success) setReminders(res.data);
+  }, [user]);
+
   
   const signUpForEvent = useCallback(async (eventId, additionalInfo = null) => {
     if (!user) return { success: false, error: 'Not logged in' };
@@ -203,9 +206,10 @@ function AppContent() {
     if (result.success) {
       await fetchEvents();
       await fetchUserSignups();
+      await refreshReminders();
     }
     return result;
-  }, [user, fetchEvents, fetchUserSignups]);
+  }, [user, fetchEvents, fetchUserSignups, refreshReminders]);
 
   const cancelSignup = useCallback(async (eventId) => {
     if (!user) return { success: false, error: 'Not logged in' };
@@ -213,9 +217,10 @@ function AppContent() {
     if (result.success) {
       await fetchEvents();
       await fetchUserSignups();
+      await refreshReminders();
     }
     return result;
-  }, [user, fetchEvents, fetchUserSignups]);
+  }, [user, fetchEvents, fetchUserSignups, refreshReminders]);
 
   const isSignedUp = useCallback(async (eventId) => {
     if (!user) return false;
@@ -282,6 +287,7 @@ function AppContent() {
     showNotification,
     dismissReminder,
     closeNotification,
+    refreshReminders,
   };
 
   const interestsProps = {

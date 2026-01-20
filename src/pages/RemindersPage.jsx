@@ -2,6 +2,7 @@
  * Reminders Page
  */
 
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Box, Typography, Paper, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Chip } from '@mui/material';
 import { Delete as DeleteIcon, Event as EventIcon, CheckCircle as CheckCircleIcon, Schedule as ScheduleIcon } from '@mui/icons-material';
@@ -9,7 +10,12 @@ import { format, parseISO, isPast, isFuture } from 'date-fns';
 
 const RemindersPage = ({ remindersProps }) => {
   const navigate = useNavigate();
-  const { reminders, dismissReminder } = remindersProps;
+  const { reminders, dismissReminder, refreshReminders } = remindersProps;
+
+  useEffect(() => {
+    // Ensure we show the latest reminders when opening the tab
+    refreshReminders?.();
+  }, [refreshReminders]);
 
   const upcomingReminders = reminders.filter(
     r => !r.dismissed && r.eventStart && isFuture(parseISO(r.eventStart))

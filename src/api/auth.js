@@ -4,6 +4,36 @@
 
 import { API_BASE_URL, API_PREFIX } from './config';
 
+// Decode base64url helper
+const base64UrlDecode = (str) => {
+  try {
+    const pad = (s) => s + '='.repeat((4 - (s.length % 4)) % 4);
+    const b64 = pad(str.replace(/-/g, '+').replace(/_/g, '/'));
+    const decoded = typeof window !== 'undefined' ? window.atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+    // Convert binary string to UTF-8
+    const bytes = Uint8Array.from(decoded, c => c.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return null;
+  }
+};
+
+// Check if JWT token is expired using `exp` claim
+const isTokenExpired = (token) => {
+  if (!token || token.split('.').length !== 3) return true;
+  const payloadPart = token.split('.')[1];
+  const json = base64UrlDecode(payloadPart);
+  if (!json) return true;
+  try {
+    const payload = JSON.parse(json);
+    if (!payload.exp) return true;
+    const nowSec = Math.floor(Date.now() / 1000);
+    return payload.exp <= nowSec;
+  } catch {
+    return true;
+  }
+};
+
 /**
  * Register a new user
  */
@@ -102,6 +132,13 @@ export const getCurrentUser = async () => {
     return { success: false, error: 'Not authenticated' };
   }
 
+  // Proactively enforce re-login when token is expired
+  if (isTokenExpired(token)) {
+    localStorage.removeItem('theloop_token');
+    localStorage.removeItem('theloop_user');
+    return { success: false, error: 'Session expired. Please login again.' };
+  }
+
   // If we have cached user data, return it immediately
   if (cachedUser) {
     try {
@@ -127,6 +164,11 @@ export const getCurrentUser = async () => {
       // Token is invalid or expired, clear storage
       localStorage.removeItem('theloop_token');
       localStorage.removeItem('theloop_user');
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('theloop:unauthorized', { detail: { endpoint: '/auth/me' } }));
+        }
+      } catch {}
       return { success: false, error: 'Session expired. Please login again.' };
     }
 
