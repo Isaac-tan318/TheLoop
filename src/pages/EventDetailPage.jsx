@@ -8,7 +8,7 @@ import EventDetail from '../components/events/EventDetail';
 
 const EventDetailPage = ({ eventsProps }) => {
   const { id } = useParams();
-  const { signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading } = eventsProps;
+  const { signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading, updateFilters } = eventsProps;
 
   return (
     <Box sx={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 64px)' }}>
@@ -20,6 +20,7 @@ const EventDetailPage = ({ eventsProps }) => {
           isSignedUp={isSignedUp}
           deleteEvent={deleteEvent}
           loading={loading}
+          updateFilters={updateFilters}
         />
       </Container>
     </Box>

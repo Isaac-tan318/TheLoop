@@ -105,6 +105,7 @@ const EventsPage = ({ eventsProps, interestsProps }) => {
                   cancelSignup={cancelSignup}
                   isSignedUp={isSignedUp}
                   loading={loading}
+                  clearSearchOnBack={Boolean(filters.searchQuery)}
                 />
               </Box>
             ))}

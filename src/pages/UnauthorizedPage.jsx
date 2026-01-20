@@ -3,13 +3,15 @@
  */
 
 import { Box, Typography, Button, Container } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../context/AuthContext';
 
 const UnauthorizedPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const originLocation = location.state?.from;
 
   const handleGoBack = () => {
     if (isAuthenticated) {
@@ -17,8 +19,16 @@ const UnauthorizedPage = () => {
       if (user?.role === 'organiser') {
         navigate('/organiser/dashboard');
       } else {
-        navigate('/events');
+        navigate('/');
       }
+    } else {
+      handleSignIn();
+    }
+  };
+
+  const handleSignIn = () => {
+    if (originLocation) {
+      navigate('/login', { state: { from: originLocation } });
     } else {
       navigate('/login');
     }
@@ -95,12 +105,12 @@ const UnauthorizedPage = () => {
                 '&:hover': { bgcolor: '#b91c1c' },
               }}
             >
-              Go to Dashboard
+              Go to Home
             </Button>
           ) : (
             <Button
               variant="contained"
-              onClick={() => navigate('/login')}
+              onClick={handleSignIn}
               sx={{
                 bgcolor: '#dc2626',
                 '&:hover': { bgcolor: '#b91c1c' },
@@ -109,20 +119,7 @@ const UnauthorizedPage = () => {
               Sign In
             </Button>
           )}
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/')}
-            sx={{
-              borderColor: '#dc2626',
-              color: '#dc2626',
-              '&:hover': {
-                borderColor: '#b91c1c',
-                bgcolor: 'rgba(220, 38, 38, 0.04)',
-              },
-            }}
-          >
-            Go Home
-          </Button>
+
         </Box>
       </Box>
     </Container>

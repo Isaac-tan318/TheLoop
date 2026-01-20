@@ -27,14 +27,25 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (!isAuthenticated) {
-    // Redirect to login with return URL
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <Navigate
+        to="/unauthorized"
+        state={{ from: location, reason: 'auth' }}
+        replace
+      />
+    );
   }
 
   // Check role-based access if roles are specified
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     // Redirect to unauthorized page
-    return <Navigate to="/unauthorized" replace />;
+    return (
+      <Navigate
+        to="/unauthorized"
+        state={{ from: location, reason: 'role' }}
+        replace
+      />
+    );
   }
 
   return children;

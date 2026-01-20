@@ -1,19 +1,51 @@
  
 
-import { useMemo } from 'react';
-import { Box, Container, Typography, Button, CircularProgress } from '@mui/material';
+import { useMemo, useState, useEffect } from 'react';
+import { Box, Container, Typography, Button, CircularProgress, Alert, Chip } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, AutoAwesome as PersonalizedIcon } from '@mui/icons-material';
 import EventCard from '../components/events/EventCard';
 import { useAuth } from "../context/AuthContext";
 import { parseISO, isAfter, isBefore, addDays } from 'date-fns';
+import { getRecommendedEvents } from '../api/events';
 
 const HomePage = ({ eventsProps }) => {
   const { events, signUpForEvent, cancelSignup, isSignedUp, loading: eventsLoading = false } = eventsProps || {};
   const { isAuthenticated, user, loading: authLoading } = useAuth();
 
+  // Recommendations state
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationType, setRecommendationType] = useState('popular');
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState(null);
 
   const isOrganiser = user?.role === 'organiser';
+
+  // Fetch recommendations when user is authenticated
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!isAuthenticated || authLoading) return;
+      
+      setRecommendationsLoading(true);
+      setRecommendationsError(null);
+      
+      try {
+        const result = await getRecommendedEvents(6);
+        if (result.success) {
+          setRecommendations(result.data);
+          setRecommendationType(result.recommendationType);
+        } else {
+          setRecommendationsError(result.error || 'Failed to load recommendations');
+        }
+      } catch (err) {
+        setRecommendationsError('Failed to load recommendations');
+      } finally {
+        setRecommendationsLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, [isAuthenticated, authLoading, user?.interests?.length]);
 
   const now = new Date();
   const oneWeekFromNow = addDays(now, 7);
@@ -110,6 +142,54 @@ const HomePage = ({ eventsProps }) => {
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
 
+        {/* Recommendations Section - Only for authenticated users */}
+        {isAuthenticated && !authLoading && (
+          <Box sx={{ mb: 5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <PersonalizedIcon sx={{ color: '#dc2626' }} />
+              <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>
+                Recommended for You
+              </Typography>
+              {recommendationType === 'personalized' && (
+                <Chip 
+                  label="Based on your activity" 
+                  size="small" 
+                  sx={{ ml: 1, backgroundColor: '#fef2f2', color: '#dc2626' }}
+                />
+              )}
+            </Box>
+
+            {recommendationsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress sx={{ color: '#dc2626' }} />
+              </Box>
+            ) : recommendationsError ? (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {recommendationsError}
+              </Alert>
+            ) : recommendations.length > 0 ? (
+              <>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+                  {recommendations.map(event => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      signUpForEvent={signUpForEvent}
+                      cancelSignup={cancelSignup}
+                      isSignedUp={isSignedUp}
+                      loading={eventsLoading}
+                      showMatchScore={recommendationType === 'personalized'}
+                    />
+                  ))}
+                </Box>
+              </>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4, backgroundColor: 'white', borderRadius: 2 }}>
+                <Typography color="textSecondary">No recommendations available at the moment.</Typography>
+              </Box>
+            )}
+          </Box>
+        )}
 
         {/* Loading state */}
         {eventsLoading ? (
@@ -190,7 +270,7 @@ const HomePage = ({ eventsProps }) => {
         )}
 
         
-        {!isAuthenticated && (
+        {!isAuthenticated && !authLoading && (
           <Box
             sx={{
               textAlign: 'center',

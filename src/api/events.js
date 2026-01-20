@@ -18,7 +18,8 @@ export const getAllEvents = async (filters = {}) => {
     events = events.filter(e => 
       e.title.toLowerCase().includes(query) ||
       e.description.toLowerCase().includes(query) ||
-      e.location.toLowerCase().includes(query)
+      e.location.toLowerCase().includes(query) ||
+      (Array.isArray(e.interests) && e.interests.some((interest) => interest.toLowerCase().includes(query)))
     );
   }
   
@@ -182,4 +183,20 @@ export const isUserSignedUp = async (eventId, userId) => {
  
 export const getEventSignups = async (eventId, organiserId) => {
   return await api.get(`/signups?eventId=${eventId}`);
+};
+
+/**
+ * Get personalized event recommendations for the current user
+ * Returns popular events if user has no interests set
+ */
+export const getRecommendedEvents = async (limit = 6) => {
+  const result = await api.get(`/suggestions?limit=${limit}`);
+  if (!result.success) return result;
+  
+  // API returns { events: [...], recommendationType: 'personalized' | 'popular' }
+  return {
+    success: true,
+    data: result.data.events || [],
+    recommendationType: result.data.recommendationType || 'popular',
+  };
 };

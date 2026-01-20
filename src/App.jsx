@@ -23,6 +23,7 @@ import ReminderNotification from './components/reminders/ReminderNotification';
 import HomePage from './pages/HomePage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
+import SearchPage from './pages/SearchPage';
 import CalendarPage from './pages/CalendarPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -301,7 +302,6 @@ function AppContent() {
     <>
       <Navbar
         reminders={reminders}
-        updateFilters={updateFilters}
       />
       <ReminderNotification
         activeReminder={activeReminder}
@@ -311,6 +311,7 @@ function AppContent() {
       <Routes>
         
         <Route path="/" element={<HomePage eventsProps={eventsProps} />} />
+        <Route path="/search" element={<SearchPage eventsProps={eventsProps} />} />
         <Route path="/events" element={<EventsPage eventsProps={eventsProps} interestsProps={interestsProps} />} />
         <Route path="/events/:id" element={<EventDetailPage eventsProps={eventsProps} />} />
         <Route path="/calendar" element={<CalendarPage eventsProps={eventsProps} />} />

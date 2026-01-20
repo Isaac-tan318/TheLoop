@@ -1,7 +1,7 @@
  
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -22,15 +22,32 @@ import {
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   Image as ImageIcon,
+  AutoAwesome as MatchIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
+import { trackEventView } from '../../api/analytics';
 
-const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignup, isSignedUp, loading }) => {
+const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignup, isSignedUp, loading, showMatchScore = false, clearSearchOnBack = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [userSignedUp, setUserSignedUp] = useState(false);
+
+  // Handle card click - navigate and track view
+  const handleCardClick = () => {
+    // Track event view for personalized recommendations
+    if (isAuthenticated) {
+      trackEventView(event.id);
+    }
+    navigate(`/events/${event.id}`, {
+      state: {
+        from: location.pathname,
+        clearSearchOnBack,
+      },
+    });
+  };
 
   const isOrganiser = user?.id === event.organiserId;
   const isPast = (() => {
@@ -114,7 +131,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
           },
           cursor: 'pointer',
         }}
-        onClick={() => navigate(`/events/${event.id}`)}
+        onClick={handleCardClick}
       >
         
         <Box
@@ -162,6 +179,19 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
               justifyContent: 'flex-end',
             }}
           >
+            {showMatchScore && event.similarityScore > 0 && (
+              <Chip
+                icon={<MatchIcon sx={{ fontSize: 14, color: 'white !important' }} />}
+                label={`${Math.round(event.similarityScore * 100)}% match`}
+                size="small"
+                sx={{
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  '& .MuiChip-icon': { color: 'white' },
+                }}
+              />
+            )}
             {event.interests.slice(0, 2).map((interest) => (
               <Chip
                 key={interest}

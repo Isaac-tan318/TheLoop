@@ -23,8 +23,9 @@ import {
   Dashboard as DashboardIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
+import { trackSearch } from '../../api/analytics';
 
-const Navbar = ({ reminders = [], updateFilters }) => {
+const Navbar = ({ reminders = [] }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
@@ -57,10 +58,12 @@ const Navbar = ({ reminders = [], updateFilters }) => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (updateFilters) updateFilters({ searchQuery });
-    if (location.pathname !== '/events') {
-      navigate('/events');
+    const trimmed = searchQuery.trim();
+    if (trimmed && isAuthenticated) {
+      trackSearch(trimmed);
     }
+    const target = trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search';
+    navigate(target);
   };
 
   const pendingReminders = reminders.filter(r => !r.sent && !r.dismissed);

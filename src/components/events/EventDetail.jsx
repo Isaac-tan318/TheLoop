@@ -26,6 +26,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
+  ArrowBack as ArrowBackIcon,
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   AccessTime as TimeIcon,
@@ -43,7 +44,7 @@ import { useUI } from '../../context/UIContext';
 import * as eventsApi from '../../api/events';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading }) => {
+const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading, updateFilters }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -199,6 +200,27 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     setDeleting(false);
   };
 
+  const shouldClearSearch = Boolean(location.state?.clearSearchOnBack);
+
+  useEffect(() => {
+    return () => {
+      if (shouldClearSearch && updateFilters) {
+        updateFilters({ searchQuery: '' });
+      }
+    };
+  }, [shouldClearSearch, updateFilters]);
+
+  const handleBack = () => {
+    if (shouldClearSearch && updateFilters) {
+      updateFilters({ searchQuery: '' });
+    }
+    if (location?.state?.from) {
+      navigate(-1);
+    } else {
+      navigate('/events');
+    }
+  };
+
   if (loadingEvent) {
     return <LoadingSpinner message="Loading event details..." />;
   }
@@ -219,6 +241,13 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
   return (
     <Box>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={handleBack}
+        sx={{ mb: 2, color: '#dc2626', '&:hover': { backgroundColor: '#fef2f2' } }}
+      >
+        Back to events
+      </Button>
       
       <Box
         sx={{

@@ -78,9 +78,9 @@ export const register = async (userData) => {
   }
 };
 
-/**
- * Login user
- */
+
+// Login user
+ 
 export const login = async (email, password) => {
   if (!email || !password) {
     return { success: false, error: 'Email and password are required' };
