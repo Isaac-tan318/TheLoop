@@ -79,6 +79,11 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
       return;
     }
 
+    if (event.signupsOpen === false) {
+      alert('Signups are currently closed for this event.');
+      return;
+    }
+
     if (Array.isArray(event.additionalFields) && event.additionalFields.length > 0) {
       
       navigate(`/events/${event._id}`, { state: { openSignup: true } });
@@ -290,7 +295,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
                   e.stopPropagation();
                   handleSignup();
                 }}
-                disabled={loading || event.isFull || isPast}
+                disabled={loading || event.isFull || isPast || event.signupsOpen === false}
                 sx={{
                   borderColor: '#000',
                   color: '#000',
@@ -307,7 +312,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
                     Loading...
                   </Box>
                 ) : (
-                  isPast ? 'Signups closed' : (event.isFull ? 'Event Full' : 'Sign up')
+                  isPast || event.signupsOpen === false ? 'Signups closed' : (event.isFull ? 'Event Full' : 'Sign up')
                 )}
               </Button>
             )}

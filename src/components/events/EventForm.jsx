@@ -37,8 +37,10 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
     startDate: '',
     endDate: '',
     capacity: 50,
+    imageUrl: '',
     interests: [],
     additionalFields: [],
+    signupsOpen: true,
   });
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -52,8 +54,10 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
         startDate: format(parseISO(event.startDate), "yyyy-MM-dd'T'HH:mm"),
         endDate: format(parseISO(event.endDate), "yyyy-MM-dd'T'HH:mm"),
         capacity: event.capacity,
+        imageUrl: event.imageUrl || '',
         interests: event.interests,
         additionalFields: event.additionalFields || [],
+        signupsOpen: event.signupsOpen !== false, // Default to true for backwards compatibility
       });
     }
   }, [event]);
@@ -65,7 +69,16 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
       [name]: name === 'capacity' ? parseInt(value) || '' : value,
     }));
     
-    if (errors[name]) {
+    // Validate imageUrl format on change
+    if (name === 'imageUrl') {
+      if (value && !/^https?:\/\/.+/.test(value)) {
+        setErrors(prev => ({ ...prev, imageUrl: 'Please enter a valid URL starting with http:// or https://' }));
+      } else if (value && value.length > 500) {
+        setErrors(prev => ({ ...prev, imageUrl: 'URL must be less than 500 characters' }));
+      } else {
+        setErrors(prev => ({ ...prev, imageUrl: null }));
+      }
+    } else if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
     setSubmitError('');
@@ -265,6 +278,36 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
           sx={{ mb: 3 }}
           inputProps={{ min: 1, max: 10000 }}
           required
+        />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.signupsOpen !== false}
+              onChange={(e) => setFormData(prev => ({ ...prev, signupsOpen: e.target.checked }))}
+              sx={{
+                color: '#dc2626',
+                '&.Mui-checked': { color: '#dc2626' },
+              }}
+            />
+          }
+          label="Signups open"
+          sx={{ mb: 3 }}
+        />
+        <Typography variant="caption" color="textSecondary" sx={{ mt: -2, mb: 3, ml: 4, display: 'block' }}>
+          Uncheck to close signups for this event
+        </Typography>
+
+        <TextField
+          fullWidth
+          label="Image URL"
+          name="imageUrl"
+          value={formData.imageUrl}
+          onChange={handleChange}
+          error={!!errors.imageUrl}
+          helperText={errors.imageUrl || 'URL for the event banner image (optional)'}
+          sx={{ mb: 3 }}
+          placeholder="https://example.com/image.jpg"
         />
 
         <Box sx={{ mb: 3 }}>

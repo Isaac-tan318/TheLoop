@@ -173,14 +173,11 @@ function makeMockEvents(count = 3) {
       location: randomItem(locations),
       startDate: start,
       endDate: end,
-      organiserId: 'user-2',
-      organiserName: 'Jane Smith',
+      organiserId: new mongoose.Types.ObjectId(), // Generate a placeholder ObjectId
       interests: template.interests.slice(0, 2),
       capacity: randomInt(30, 150),
       signupCount: 0,
       imageUrl: IMAGE_URLS[i % IMAGE_URLS.length],
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
   }
   return events;

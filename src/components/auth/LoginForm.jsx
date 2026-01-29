@@ -73,7 +73,7 @@ const LoginForm = () => {
       if (result.data.role === 'organiser') {
         navigate('/organiser/dashboard');
       } else {
-        navigate(from);
+        navigate('/');
       }
     }
   };

@@ -1,7 +1,7 @@
  
 
 import api from './config';
-import { createReminderForSignup, deleteUserEventReminders, deleteEventReminders } from './reminders';
+import { calculateReminderTime } from './reminders';
 
  
 export const getAllEvents = async (filters = {}) => {
@@ -53,13 +53,12 @@ export const createEvent = async (eventData, organiser) => {
     startDate: eventData.startDate,
     endDate: eventData.endDate,
     organiserId: organiser?._id,
-    organiserName: organiser.name,
     interests: eventData.interests || [],
     capacity: eventData.capacity || 50,
     signupCount: 0,
+    signupsOpen: eventData.signupsOpen !== false, // Default to true
     imageUrl: eventData.imageUrl || null,
     additionalFields: eventData.additionalFields || [],
-    createdAt: new Date().toISOString(),
   };
   
   return await api.post('/events', newEvent);
@@ -70,9 +69,16 @@ export const updateEvent = async (eventId, updates, organiserId) => {
   return await api.patch(`/events/${eventId}`, updates);
 };
 
+/**
+ * Toggle signups open/closed for an event
+ */
+export const toggleSignups = async (eventId, signupsOpen) => {
+  return await api.patch(`/events/${eventId}`, { signupsOpen });
+};
+
  
 export const deleteEvent = async (eventId, organiserId) => {
-  
+  // Delete all signups for this event (reminders are embedded, so they're deleted too)
   const signupsResult = await api.get(`/signups?eventId=${eventId}`);
   if (signupsResult.success && signupsResult.data.length > 0) {
     for (const signup of signupsResult.data) {
@@ -80,19 +86,25 @@ export const deleteEvent = async (eventId, organiserId) => {
     }
   }
   
-  await deleteEventReminders(eventId);
-  
   return await api.delete(`/events/${eventId}`);
 };
 
  
 export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
-  
+  // Check if already signed up
   const existingResult = await api.get(`/signups?eventId=${eventId}&userId=${user._id}`);
   if (existingResult.success && existingResult.data.length > 0) {
     return { success: false, error: 'Already signed up for this event' };
   }
   
+  // Fetch event to calculate reminder time
+  const eventResult = await api.get(`/events/${eventId}`);
+  if (!eventResult.success) {
+    return { success: false, error: 'Event not found' };
+  }
+  const event = eventResult.data;
+  
+  // Create signup with embedded reminder (24h before event)
   const signup = {
     eventId,
     userId: user._id,
@@ -100,20 +112,20 @@ export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
     userEmail: user.email,
     signedUpAt: new Date().toISOString(),
     additionalInfo: additionalInfo || null,
+    reminder: {
+      sent: false,
+      dismissed: false,
+      time: calculateReminderTime(event.startDate).toISOString(),
+    },
   };
   
   const result = await api.post('/signups', signup);
   
-  
+  // Update event signup count
   if (result.success) {
-    const eventResult = await api.get(`/events/${eventId}`);
-    if (eventResult.success) {
-      await api.patch(`/events/${eventId}`, {
-        signupCount: (eventResult.data.signupCount || 0) + 1
-      });
-      
-      await createReminderForSignup(eventId, user);
-    }
+    await api.patch(`/events/${eventId}`, {
+      signupCount: (event.signupCount || 0) + 1
+    });
   }
   
   return result;
@@ -121,7 +133,7 @@ export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
 
  
 export const cancelSignup = async (eventId, userId) => {
-  
+  // Find the signup
   const signupsResult = await api.get(`/signups?eventId=${eventId}&userId=${userId}`);
   
   if (!signupsResult.success || signupsResult.data.length === 0) {
@@ -129,17 +141,16 @@ export const cancelSignup = async (eventId, userId) => {
   }
   
   const signup = signupsResult.data[0];
+  // Deleting signup also removes embedded reminder
   const result = await api.delete(`/signups/${signup._id}`);
   
-  
+  // Update event signup count
   if (result.success) {
     const eventResult = await api.get(`/events/${eventId}`);
     if (eventResult.success) {
       await api.patch(`/events/${eventId}`, {
         signupCount: Math.max((eventResult.data.signupCount || 1) - 1, 0)
       });
-      
-      await deleteUserEventReminders(eventId, userId);
     }
   }
   

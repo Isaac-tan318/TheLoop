@@ -94,6 +94,14 @@ export const eventSchema = z.object({
     .number({ invalid_type_error: 'Capacity must be a number' })
     .min(1, 'Capacity must be at least 1')
     .max(10000, 'Capacity must be less than 10000'),
+  imageUrl: z
+    .string()
+    .max(500, 'URL must be less than 500 characters')
+    .refine((val) => !val || /^https?:\/\/.+/.test(val), {
+      message: 'Please enter a valid URL starting with http:// or https://',
+    })
+    .optional()
+    .or(z.literal('')),
   interests: z
     .array(z.string())
     .min(1, 'Please select at least one interest tag'),

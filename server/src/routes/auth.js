@@ -22,8 +22,6 @@ router.post('/register', async (req, res, next) => {
       name,
       role: role || 'student',
       interests: interests || [],
-      eventsSignedUp: [],
-      createdAt: new Date(),
     });
 
     const token = generateToken({ _id: user._id.toString(), email: user.email, role: user.role });
@@ -41,7 +39,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -93,7 +91,6 @@ function sanitizeUser(user) {
     name: user.name,
     role: user.role,
     interests: user.interests,
-    eventsSignedUp: user.eventsSignedUp,
     createdAt: user.createdAt,
   };
 }

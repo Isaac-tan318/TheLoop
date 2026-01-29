@@ -6,7 +6,6 @@ import suggestionsRoutes from './suggestions.js';
 import User from '../models/User.js';
 import Event from '../models/Event.js';
 import Signup from '../models/Signup.js';
-import Reminder from '../models/Reminder.js';
 import Interest from '../models/Interest.js';
 
 const router = express.Router();
@@ -24,8 +23,14 @@ router.use('/suggestions', suggestionsRoutes);
 router.get('/events', async (req, res, next) => {
   try {
     const filter = { ...req.query };
-    const docs = await Event.find(filter).lean();
-    res.json(docs);
+    const docs = await Event.find(filter).populate('organiserId', 'name').lean();
+    // Map organiser name to organiserName for frontend compatibility
+    const result = docs.map(doc => ({
+      ...doc,
+      organiserName: doc.organiserId?.name || 'Unknown Organiser',
+      organiserId: doc.organiserId?._id || doc.organiserId,
+    }));
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -33,9 +38,15 @@ router.get('/events', async (req, res, next) => {
 
 router.get('/events/:id', async (req, res, next) => {
   try {
-    const doc = await Event.findById(req.params.id).lean();
+    const doc = await Event.findById(req.params.id).populate('organiserId', 'name').lean();
     if (!doc) return res.status(404).json({ message: 'Not found' });
-    res.json(doc);
+    // Map organiser name to organiserName for frontend compatibility
+    const result = {
+      ...doc,
+      organiserName: doc.organiserId?.name || 'Unknown Organiser',
+      organiserId: doc.organiserId?._id || doc.organiserId,
+    };
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -252,66 +263,6 @@ router.patch('/signups/:id', authenticateToken, async (req, res, next) => {
 router.delete('/signups/:id', authenticateToken, async (req, res, next) => {
   try {
     const deleted = await Signup.findByIdAndDelete(req.params.id).lean();
-    if (!deleted) return res.status(404).json({ message: 'Not found' });
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// ========== REMINDERS (fully protected) ==========
-router.get('/reminders', authenticateToken, async (req, res, next) => {
-  try {
-    const filter = { ...req.query };
-    const docs = await Reminder.find(filter).lean();
-    res.json(docs);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/reminders/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const doc = await Reminder.findById(req.params.id).lean();
-    if (!doc) return res.status(404).json({ message: 'Not found' });
-    res.json(doc);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/reminders', authenticateToken, async (req, res, next) => {
-  try {
-    const created = await Reminder.create(req.body);
-    res.status(201).json(created);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.put('/reminders/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const updated = await Reminder.findByIdAndUpdate(req.params.id, req.body, { new: true, overwrite: true, runValidators: true }).lean();
-    if (!updated) return res.status(404).json({ message: 'Not found' });
-    res.json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.patch('/reminders/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const updated = await Reminder.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).lean();
-    if (!updated) return res.status(404).json({ message: 'Not found' });
-    res.json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.delete('/reminders/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const deleted = await Reminder.findByIdAndDelete(req.params.id).lean();
     if (!deleted) return res.status(404).json({ message: 'Not found' });
     res.status(204).end();
   } catch (err) {

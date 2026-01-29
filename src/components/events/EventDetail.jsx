@@ -24,6 +24,8 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -37,6 +39,8 @@ import {
   Delete as DeleteIcon,
   EventAvailable as SignUpIcon,
   Check as CheckIcon,
+  LockOpen as LockOpenIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
@@ -62,6 +66,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   const [signupErrors, setSignupErrors] = useState({});
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingSignups, setTogglingSignups] = useState(false);
 
   const isOrganiser = user?._id === event?.organiserId;
   const isPast = (() => {
@@ -124,6 +129,11 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
     if (isPast) {
       alert('Signups are closed because this event has already started.');
+      return;
+    }
+
+    if (event?.signupsOpen === false) {
+      alert('Signups are currently closed for this event.');
       return;
     }
 
@@ -198,6 +208,21 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       notify(result.error || 'Failed to delete event.', 'error');
     }
     setDeleting(false);
+  };
+
+  const handleToggleSignups = async () => {
+    setTogglingSignups(true);
+    // Handle undefined as true (signups open by default)
+    const currentlyOpen = event.signupsOpen !== false;
+    const newSignupsOpen = !currentlyOpen;
+    const result = await eventsApi.toggleSignups(eventId, newSignupsOpen);
+    if (result.success) {
+      setEvent(prev => ({ ...prev, signupsOpen: newSignupsOpen }));
+      notify(newSignupsOpen ? 'Signups are now open' : 'Signups are now closed', 'success');
+    } else {
+      notify(result.error || 'Failed to toggle signups', 'error');
+    }
+    setTogglingSignups(false);
   };
 
   const shouldClearSearch = Boolean(location.state?.clearSearchOnBack);
@@ -346,7 +371,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                     <Button
                     variant="contained"
                     onClick={handleSignup}
-                    disabled={loading || event.isFull || isPast}
+                    disabled={loading || event.isFull || isPast || event.signupsOpen === false}
                     sx={{
                       py: 1,
                       px: 3,
@@ -356,7 +381,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                       '&:hover': { backgroundColor: '#b91c1c' },
                     }}
                     >
-                      {isPast ? 'Signups closed' : (event.isFull ? 'Event Full' : 'Sign Up')}
+                      {isPast || event.signupsOpen === false ? 'Signups closed' : (event.isFull ? 'Event Full' : 'Sign Up')}
                     </Button>
                   </Box>
                 )}
@@ -364,7 +389,40 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
             )}
 
             {isOrganiser && (
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={event.signupsOpen !== false}
+                      onChange={handleToggleSignups}
+                      disabled={togglingSignups}
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': {
+                          color: '#22c55e',
+                        },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                          backgroundColor: '#22c55e',
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {event.signupsOpen !== false ? (
+                        <>
+                          <LockOpenIcon sx={{ fontSize: 18, color: '#22c55e' }} />
+                          <Typography variant="body2" sx={{ color: '#22c55e' }}>Signups Open</Typography>
+                        </>
+                      ) : (
+                        <>
+                          <LockIcon sx={{ fontSize: 18, color: '#dc2626' }} />
+                          <Typography variant="body2" sx={{ color: '#dc2626' }}>Signups Closed</Typography>
+                        </>
+                      )}
+                    </Box>
+                  }
+                  sx={{ mr: 2 }}
+                />
                 <Button
                   size="small"
                   variant="outlined"

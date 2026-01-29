@@ -1,86 +1,68 @@
-/**
- * Reminders API (JSON Server)
+2/**
+ * Reminders API (now uses Signup model with embedded reminder fields)
  *
- * Routes:
- * GET    /reminders?userId=...            - List reminders for user
- * POST   /reminders                        - Create reminder
- * PATCH  /reminders/:id                    - Update reminder (sent/dismissed)
- * DELETE /reminders/:id                    - Delete reminder
+ * Reminders are embedded in signups - no separate /reminders endpoint needed.
+ * Uses /signups with reminder.* fields:
+ *   - reminder.enabled: Boolean
+ *   - reminder.sent: Boolean  
+ *   - reminder.dismissed: Boolean
+ *   - reminder.time: Date (24h before event start)
  */
 
 import api from './config';
 
-// Create a reminder for a signup (24 hours before event start)
-export const createReminderForSignup = async (eventId, user) => {
-  const eventRes = await api.get(`/events/${eventId}`);
-  if (!eventRes.success) return eventRes;
-
-  const event = eventRes.data;
-  const start = new Date(event.startDate);
-  const reminderTime = new Date(start.getTime() - 24 * 60 * 60 * 1000);
-
-  const reminder = {
-    userId: user._id,
-    eventId: event._id,
-    eventTitle: event.title,
-    eventStart: event.startDate,
-    reminderTime: reminderTime.toISOString(),
-    sent: false,
-    dismissed: false,
-    createdAt: new Date().toISOString(),
-  };
-
-  return await api.post('/reminders', reminder);
-};
-
-// Get all reminders for a user (enriched with event if available)
+// Get all signups with reminders for a user (enriched with event data)
 export const getUserReminders = async (userId) => {
-  const res = await api.get(`/reminders?userId=${userId}`);
+  // Get user's signups that have reminders enabled
+  const res = await api.get(`/signups?userId=${userId}`);
   if (!res.success) return res;
 
-  const reminders = res.data || [];
+  const signups = res.data || [];
   const enriched = [];
-  for (const r of reminders) {
-    const ev = await api.get(`/events/${r.eventId}`);
+  
+  for (const signup of signups) {
+    // Skip signups without reminder data
+    if (!signup.reminder?.time) continue;
+    
+    // Fetch event data for display
+    const ev = await api.get(`/events/${signup.eventId}`);
+    const event = ev.success ? ev.data : null;
+    
     enriched.push({
-      ...r,
-      event: ev.success ? ev.data : null,
+      _id: signup._id,  // Use signup ID for dismiss/mark sent
+      signupId: signup._id,
+      userId: signup.userId,
+      eventId: signup.eventId,
+      eventTitle: event?.title || 'Unknown Event',
+      eventStart: event?.startDate,
+      reminderTime: signup.reminder.time,
+      sent: signup.reminder.sent || false,
+      dismissed: signup.reminder.dismissed || false,
+      event,
     });
   }
+  
   return { success: true, data: enriched };
 };
 
-// Dismiss a reminder (hide and prevent notification)
-export const dismissReminder = async (reminderId) => {
-  return await api.patch(`/reminders/${reminderId}`, { dismissed: true });
-};
-
-// Mark reminder as sent
-export const markReminderSent = async (reminderId) => {
-  return await api.patch(`/reminders/${reminderId}`, {
-    sent: true,
-    sentAt: new Date().toISOString(),
+// Dismiss a reminder (update signup's reminder.dismissed)
+export const dismissReminder = async (signupId) => {
+  return await api.patch(`/signups/${signupId}`, { 
+    'reminder.dismissed': true 
   });
 };
 
-// Delete reminders for a specific event + user
-export const deleteUserEventReminders = async (eventId, userId) => {
-  const res = await api.get(`/reminders?eventId=${eventId}&userId=${userId}`);
-  if (!res.success) return res;
-  for (const r of res.data) {
-    await api.delete(`/reminders/${r._id}`);
-  }
-  return { success: true };
+// Mark reminder as sent (update signup's reminder.sent)
+export const markReminderSent = async (signupId) => {
+  return await api.patch(`/signups/${signupId}`, {
+    'reminder.sent': true,
+  });
 };
 
-// Delete all reminders for an event (e.g., event deletion)
-export const deleteEventReminders = async (eventId) => {
-  const res = await api.get(`/reminders?eventId=${eventId}`);
-  if (!res.success) return res;
-  for (const r of res.data) {
-    await api.delete(`/reminders/${r._id}`);
-  }
-  return { success: true };
+// Calculate reminder time (24 hours before event)
+export const calculateReminderTime = (eventStartDate) => {
+  const start = new Date(eventStartDate);
+  return new Date(start.getTime() - 24 * 60 * 60 * 1000);
 };
 
 // Poll for due reminders and trigger callback
@@ -89,17 +71,41 @@ export const startReminderPolling = (userId, onReminder) => {
 
   const tick = async () => {
     const now = new Date();
-    const res = await api.get(`/reminders?userId=${userId}&dismissed=false&sent=false`);
+    
+    // Get user's signups
+    const res = await api.get(`/signups?userId=${userId}`);
     if (!res.success) return;
-    const pending = res.data || [];
-
-    for (const r of pending) {
-      const dueAt = new Date(r.reminderTime);
+    
+    const signups = res.data || [];
+    
+    for (const signup of signups) {
+      // Skip if no reminder time, already sent, or dismissed
+      if (!signup.reminder?.time) continue;
+      if (signup.reminder.sent || signup.reminder.dismissed) continue;
+      
+      const dueAt = new Date(signup.reminder.time);
+      
       if (now >= dueAt) {
-        // mark sent and emit with enriched event
-        await markReminderSent(r._id);
-        const ev = await api.get(`/events/${r.eventId}`);
-        const enriched = { ...r, event: ev.success ? ev.data : null };
+        // Mark as sent
+        await markReminderSent(signup._id);
+        
+        // Fetch event for enriched notification
+        const ev = await api.get(`/events/${signup.eventId}`);
+        const event = ev.success ? ev.data : null;
+        
+        const enriched = {
+          _id: signup._id,
+          signupId: signup._id,
+          userId: signup.userId,
+          eventId: signup.eventId,
+          eventTitle: event?.title || 'Unknown Event',
+          eventStart: event?.startDate,
+          reminderTime: signup.reminder.time,
+          sent: true,
+          dismissed: false,
+          event,
+        };
+        
         onReminder(enriched);
       }
     }
@@ -114,85 +120,3 @@ export const startReminderPolling = (userId, onReminder) => {
     if (timer) clearInterval(timer);
   };
 };
-/**
- * Reminders API
- * 
- * ROUTES:
- * -------
- * GET    /api/reminders           - Get all user reminders
- * GET    /api/reminders/pending   - Get pending reminders (to be shown)
- * PUT    /api/reminders/:id/sent  - Mark reminder as sent
- * PUT    /api/reminders/:id/dismiss - Dismiss a reminder
- */
-
-
-/**
- * Get user's pending reminders (reminders that should be shown)
- * 
- * Route: GET /api/reminders/pending
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * [
- *   {
- *     "id": "reminder-uuid",
- *     "eventId": "event-uuid",
- *     "userId": "user-uuid",
- *     "eventTitle": "Event Title",
- *     "eventStart": "2026-01-15T09:00:00.000Z",
- *     "reminderTime": "2026-01-14T09:00:00.000Z",
- *     "sent": false,
- *     "dismissed": false,
- *     "event": { ... full event object ... }
- *   }
- * ]
- */
-/* removed legacy REST stubs for /api/reminders */
-
-/**
- * Get all user reminders
- * 
- * Route: GET /api/reminders
- * 
- * Request: Authorization header with JWT token
- * 
- * Response: Array of reminder objects (same as pending)
- */
-/* removed duplicate getUserReminders */
-
-/**
- * Mark reminder as sent
- * 
- * Route: PUT /api/reminders/:id/sent
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "message": "Reminder marked as sent"
- * }
- */
-/* removed legacy markReminderAsSent */
-
-/**
- * Dismiss a reminder
- * 
- * Route: PUT /api/reminders/:id/dismiss
- * 
- * Request: Authorization header with JWT token
- * 
- * Response:
- * {
- *   "message": "Reminder dismissed"
- * }
- */
-/* removed duplicate dismissReminder */
-
-/**
- * Check for reminders that need to be shown (polling function)
- * @param {string} userId - User ID
- * @param {Function} onReminder - Callback when reminder should be shown
- * @returns {Function} Cleanup function to stop checking
- */
-/* removed duplicate startReminderPolling */

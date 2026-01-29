@@ -8,6 +8,12 @@ const signupSchema = new mongoose.Schema(
     userEmail: { type: String },
     signedUpAt: { type: Date, default: Date.now },
     additionalInfo: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Embedded reminder data - no separate Reminder collection needed
+    reminder: {
+      sent: { type: Boolean, default: false },
+      dismissed: { type: Boolean, default: false },
+      time: { type: Date }, // Calculated as eventStart - 24 hours
+    },
   },
   { timestamps: true }
 );

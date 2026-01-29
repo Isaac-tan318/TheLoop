@@ -17,17 +17,21 @@ const eventSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String },
     location: { type: String },
-    startDate: { type: Date },
+    startDate: { type: Date, index: true },
     endDate: { type: Date },
-    organiserId: { type: String },
-    organiserName: { type: String },
-    interests: [{ type: String }],
+    organiserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    interests: [{ type: String, index: true }],
     capacity: { type: Number },
     signupCount: { type: Number, default: 0 },
+    signupsOpen: { type: Boolean, default: true },
     imageUrl: { type: String },
     additionalFields: [additionalFieldSchema],
-    createdAt: { type: Date },
-    updatedAt: { type: Date },
-  }
+    embedding: { type: [Number], select: false }, // Pre-computed embedding vector for AI suggestions
+  },
+  { timestamps: true }
 );
+
+// Compound index for optimizing recommendation queries
+eventSchema.index({ interests: 1, startDate: 1 });
+
 export default mongoose.model('Event', eventSchema);

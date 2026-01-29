@@ -56,7 +56,7 @@ const initializeStorage = () => {
         startDate: '2025-12-25T09:00:00',
         endDate: '2025-12-27T18:00:00',
         organiserId: 'organiser1',
-        organiserName: 'SMU Tech Club',
+        organiserName: 'SMU Tech Club', // Kept for local mock data display
         interests: ['Technology', 'Programming', 'Competition'],
         capacity: 100,
         imageUrl: null,
@@ -70,7 +70,7 @@ const initializeStorage = () => {
         startDate: '2025-11-28T16:15:00',
         endDate: '2025-11-28T18:30:00',
         organiserId: 'organiser1',
-        organiserName: 'TP Career Services',
+        organiserName: 'TP Career Services', // Kept for local mock data display
         interests: ['Networking', 'Technology', 'Career'],
         capacity: 50,
         imageUrl: null,
@@ -84,7 +84,7 @@ const initializeStorage = () => {
         startDate: '2025-11-14T10:00:00',
         endDate: '2025-11-14T12:00:00',
         organiserId: 'organiser2',
-        organiserName: 'FinTech Association',
+        organiserName: 'FinTech Association', // Kept for local mock data display
         interests: ['FinTech', 'Finance', 'Technology'],
         capacity: 30,
         imageUrl: null,

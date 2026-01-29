@@ -3,7 +3,7 @@
 //  Used for AI-powered event suggestions
 
 //  Free tier: 60 requests/min, 1,500 requests/day
-//  Model: text-embedding-004 (768 dimensions)
+//  Model: gemini-embedding-001 (768 dimensions)
  
 import dotenv from 'dotenv';
 dotenv.config();
