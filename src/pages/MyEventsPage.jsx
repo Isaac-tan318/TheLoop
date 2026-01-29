@@ -33,7 +33,7 @@ const MyEventsPage = ({ eventsProps }) => {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
         {events.map(event => (
           <EventCard
-            key={event.id}
+            key={event._id}
             event={event}
             showSignupButton={showSignup}
             signUpForEvent={signUpForEvent}

@@ -109,7 +109,7 @@ const ReminderList = ({ reminders = [], dismissReminder = () => {} }) => {
         {!isPast && (
           <IconButton
             edge="end"
-            onClick={() => dismissReminder(reminder.id)}
+            onClick={() => dismissReminder(reminder._id)}
             color="error"
           >
             <DeleteIcon />
@@ -142,7 +142,7 @@ const ReminderList = ({ reminders = [], dismissReminder = () => {} }) => {
           </Typography>
           <List disablePadding>
             {upcomingReminders.map((reminder) => (
-              <ReminderItem key={reminder.id} reminder={reminder} />
+              <ReminderItem key={reminder._id} reminder={reminder} />
             ))}
           </List>
         </Paper>
@@ -155,7 +155,7 @@ const ReminderList = ({ reminders = [], dismissReminder = () => {} }) => {
           </Typography>
           <List disablePadding>
             {pastReminders.map((reminder) => (
-              <ReminderItem key={reminder.id} reminder={reminder} isPast />
+              <ReminderItem key={reminder._id} reminder={reminder} isPast />
             ))}
           </List>
         </Paper>

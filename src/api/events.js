@@ -1,7 +1,6 @@
  
 
 import api from './config';
-import { v4 as uuidv4 } from 'uuid';
 import { createReminderForSignup, deleteUserEventReminders, deleteEventReminders } from './reminders';
 
  
@@ -48,13 +47,12 @@ export const getEventsByOrganiser = async (organiserId) => {
  
 export const createEvent = async (eventData, organiser) => {
   const newEvent = {
-    id: uuidv4(),
     title: eventData.title,
     description: eventData.description,
     location: eventData.location,
     startDate: eventData.startDate,
     endDate: eventData.endDate,
-    organiserId: organiser.id,
+    organiserId: organiser?._id,
     organiserName: organiser.name,
     interests: eventData.interests || [],
     capacity: eventData.capacity || 50,
@@ -78,7 +76,7 @@ export const deleteEvent = async (eventId, organiserId) => {
   const signupsResult = await api.get(`/signups?eventId=${eventId}`);
   if (signupsResult.success && signupsResult.data.length > 0) {
     for (const signup of signupsResult.data) {
-      await api.delete(`/signups/${signup.id}`);
+      await api.delete(`/signups/${signup._id}`);
     }
   }
   
@@ -90,15 +88,14 @@ export const deleteEvent = async (eventId, organiserId) => {
  
 export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
   
-  const existingResult = await api.get(`/signups?eventId=${eventId}&userId=${user.id}`);
+  const existingResult = await api.get(`/signups?eventId=${eventId}&userId=${user._id}`);
   if (existingResult.success && existingResult.data.length > 0) {
     return { success: false, error: 'Already signed up for this event' };
   }
   
   const signup = {
-    id: uuidv4(),
     eventId,
-    userId: user.id,
+    userId: user._id,
     userName: user.name,
     userEmail: user.email,
     signedUpAt: new Date().toISOString(),
@@ -132,7 +129,7 @@ export const cancelSignup = async (eventId, userId) => {
   }
   
   const signup = signupsResult.data[0];
-  const result = await api.delete(`/signups/${signup.id}`);
+  const result = await api.delete(`/signups/${signup._id}`);
   
   
   if (result.success) {

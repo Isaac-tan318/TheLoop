@@ -63,7 +63,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isOrganiser = user?.id === event?.organiserId;
+  const isOrganiser = user?._id === event?.organiserId;
   const isPast = (() => {
     try {
       return event ? new Date(event.startDate) <= new Date() : false;
@@ -86,8 +86,8 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         }
         
         
-        if (user && result.data.organiserId === user.id) {
-          const signupsResult = await eventsApi.getEventSignups(eventId, user.id);
+        if (user && result.data.organiserId === user._id) {
+          const signupsResult = await eventsApi.getEventSignups(eventId, user._id);
           if (signupsResult.success) {
             setSignups(signupsResult.data);
           }
@@ -381,7 +381,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                   size="small"
                   variant="outlined"
                   startIcon={<EditIcon />}
-                  onClick={() => navigate(`/organiser/events/${event.id}/edit`)}
+                  onClick={() => navigate(`/organiser/events/${event._id}/edit`)}
                 >
                   Edit
                 </Button>
@@ -564,7 +564,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
           ) : (
             <List>
               {signups.map((signup) => (
-                <ListItem key={signup.id} alignItems="flex-start">
+                <ListItem key={signup._id} alignItems="flex-start">
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: '#dc2626' }}>
                       {signup.userName?.charAt(0).toUpperCase()}
@@ -581,7 +581,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                           const answer = signup.additionalInfo[field.id];
                           if (answer == null || String(answer).trim() === '') return null;
                           return (
-                            <Typography key={`${signup.id}-${field.id}`} variant="caption" sx={{ display: 'block', color: '#374151' }}>
+                            <Typography key={`${signup._id}-${field.id}`} variant="caption" sx={{ display: 'block', color: '#374151' }}>
                               {field.label}: {String(answer)}
                             </Typography>
                           );

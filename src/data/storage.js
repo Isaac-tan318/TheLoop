@@ -49,7 +49,7 @@ const initializeStorage = () => {
     
     setItem(STORAGE_KEYS.EVENTS, [
       {
-        id: '1',
+        _id: '1',
         title: 'SMU Hackathon',
         description: 'Head down to SMU to compete in this exclusive hackathon and stand a chance to win attractive prizes!',
         location: 'Singapore Management University',
@@ -63,7 +63,7 @@ const initializeStorage = () => {
         createdAt: new Date().toISOString(),
       },
       {
-        id: '2',
+        _id: '2',
         title: 'Tech Industry Networking event',
         description: 'Join us for an exclusive Tech Industry Networking event on 20 November 2025 at Temasek Polytechnic from 4:15 PM – 6:30 PM!',
         location: 'Temasek Polytechnic',
@@ -77,7 +77,7 @@ const initializeStorage = () => {
         createdAt: new Date().toISOString(),
       },
       {
-        id: '3',
+        _id: '3',
         title: 'PayPal visit',
         description: 'Curious about how FinTech is applied in real companies such as PayPal? Find out by signing up for this company visit',
         location: 'Suntec City Tower 5',
@@ -130,7 +130,7 @@ const userStorage = {
   
   getById: (id) => {
     const users = getItem(STORAGE_KEYS.USERS) || [];
-    return users.find(user => user.id === id) || null;
+    return users.find(user => user._id === id) || null;
   },
   
   getByEmail: (email) => {
@@ -146,7 +146,7 @@ const userStorage = {
   
   update: (id, updates) => {
     const users = getItem(STORAGE_KEYS.USERS) || [];
-    const index = users.findIndex(user => user.id === id);
+    const index = users.findIndex(user => user._id === id);
     if (index === -1) return false;
     users[index] = { ...users[index], ...updates };
     return setItem(STORAGE_KEYS.USERS, users);
@@ -154,7 +154,7 @@ const userStorage = {
   
   delete: (id) => {
     const users = getItem(STORAGE_KEYS.USERS) || [];
-    const filtered = users.filter(user => user.id !== id);
+    const filtered = users.filter(user => user._id !== id);
     return setItem(STORAGE_KEYS.USERS, filtered);
   },
 };
@@ -174,7 +174,7 @@ const eventStorage = {
   
   getById: (id) => {
     const events = getItem(STORAGE_KEYS.EVENTS) || [];
-    return events.find(event => event.id === id) || null;
+    return events.find(event => event._id === id) || null;
   },
   
   getByOrganiser: (organiserId) => {
@@ -200,7 +200,7 @@ const eventStorage = {
   
   update: (id, updates) => {
     const events = getItem(STORAGE_KEYS.EVENTS) || [];
-    const index = events.findIndex(event => event.id === id);
+    const index = events.findIndex(event => event._id === id);
     if (index === -1) return false;
     events[index] = { ...events[index], ...updates };
     return setItem(STORAGE_KEYS.EVENTS, events);
@@ -208,7 +208,7 @@ const eventStorage = {
   
   delete: (id) => {
     const events = getItem(STORAGE_KEYS.EVENTS) || [];
-    const filtered = events.filter(event => event.id !== id);
+    const filtered = events.filter(event => event._id !== id);
     return setItem(STORAGE_KEYS.EVENTS, filtered);
   },
 };
@@ -271,7 +271,7 @@ const reminderStorage = {
   
   update: (id, updates) => {
     const reminders = getItem(STORAGE_KEYS.REMINDERS) || [];
-    const index = reminders.findIndex(reminder => reminder.id === id);
+    const index = reminders.findIndex(reminder => reminder._id === id);
     if (index === -1) return false;
     reminders[index] = { ...reminders[index], ...updates };
     return setItem(STORAGE_KEYS.REMINDERS, reminders);

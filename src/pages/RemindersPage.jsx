@@ -77,7 +77,7 @@ const RemindersPage = ({ remindersProps }) => {
           <EventIcon />
         </IconButton>
         {!isPastItem && (
-          <IconButton edge="end" onClick={() => dismissReminder(reminder.id)} color="error">
+          <IconButton edge="end" onClick={() => dismissReminder(reminder._id)} color="error">
             <DeleteIcon />
           </IconButton>
         )}
@@ -104,7 +104,7 @@ const RemindersPage = ({ remindersProps }) => {
               <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Upcoming Reminders</Typography>
                 <List disablePadding>
-                  {upcomingReminders.map(r => <ReminderItem key={r.id} reminder={r} />)}
+                  {upcomingReminders.map(r => <ReminderItem key={r._id} reminder={r} />)}
                 </List>
               </Paper>
             )}
@@ -112,7 +112,7 @@ const RemindersPage = ({ remindersProps }) => {
               <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#6b7280' }}>Past Reminders</Typography>
                 <List disablePadding>
-                  {pastReminders.map(r => <ReminderItem key={r.id} reminder={r} isPastItem />)}
+                  {pastReminders.map(r => <ReminderItem key={r._id} reminder={r} isPastItem />)}
                 </List>
               </Paper>
             )}

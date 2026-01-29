@@ -39,9 +39,9 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
   const handleCardClick = () => {
     // Track event view for personalized recommendations
     if (isAuthenticated) {
-      trackEventView(event.id);
+      trackEventView(event._id);
     }
-    navigate(`/events/${event.id}`, {
+    navigate(`/events/${event._id}`, {
       state: {
         from: location.pathname,
         clearSearchOnBack,
@@ -49,7 +49,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
     });
   };
 
-  const isOrganiser = user?.id === event.organiserId;
+  const isOrganiser = user?._id === event.organiserId;
   const isPast = (() => {
     try {
       return new Date(event.startDate) <= new Date();
@@ -62,15 +62,15 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
   useEffect(() => {
     if (isSignedUp && user) {
       (async () => {
-        const result = await isSignedUp(event.id);
+        const result = await isSignedUp(event._id);
         setUserSignedUp(result);
       })();
     }
-  }, [event.id, isSignedUp, user]);
+  }, [event._id, isSignedUp, user]);
 
   const handleSignup = async () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: { pathname: `/events/${event.id}` } } });
+      navigate('/login', { state: { from: { pathname: `/events/${event._id}` } } });
       return;
     }
 
@@ -81,11 +81,11 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
 
     if (Array.isArray(event.additionalFields) && event.additionalFields.length > 0) {
       
-      navigate(`/events/${event.id}`, { state: { openSignup: true } });
+      navigate(`/events/${event._id}`, { state: { openSignup: true } });
       return;
     }
 
-    const result = await signUpForEvent(event.id);
+    const result = await signUpForEvent(event._id);
     if (result.success) {
       setUserSignedUp(true);
     } else {
@@ -94,7 +94,7 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
   };
 
   const handleCancelSignup = async () => {
-    const result = await cancelSignup(event.id);
+    const result = await cancelSignup(event._id);
     if (result.success) {
       setUserSignedUp(false);
       setConfirmOpen(false);

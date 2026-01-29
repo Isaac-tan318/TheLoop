@@ -57,7 +57,7 @@ const EventCalendar = ({ events = [], signedUpEventIds = [], onEventClick }) => 
     if (onEventClick) {
       onEventClick(event);
     } else {
-      navigate(`/events/${event.id}`);
+      navigate(`/events/${event._id}`);
     }
   };
 
@@ -182,7 +182,7 @@ const EventCalendar = ({ events = [], signedUpEventIds = [], onEventClick }) => 
                 
                 <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
                   {dayEvents.slice(0, isMobile ? 1 : 2).map((event) => (
-                    <Tooltip key={event.id} title={event.title} arrow>
+                    <Tooltip key={event._id} title={event.title} arrow>
                       <Chip
                         label={event.title}
                         size="small"
@@ -195,7 +195,7 @@ const EventCalendar = ({ events = [], signedUpEventIds = [], onEventClick }) => 
                           mb: 0.25,
                           height: 20,
                           fontSize: '0.65rem',
-                          backgroundColor: signedUpEventIds.includes(event.id) ? '#16a34a' : '#dc2626',
+                          backgroundColor: signedUpEventIds.includes(event._id) ? '#16a34a' : '#dc2626',
                           color: 'white',
                           cursor: 'pointer',
                           '& .MuiChip-label': {
@@ -204,7 +204,7 @@ const EventCalendar = ({ events = [], signedUpEventIds = [], onEventClick }) => 
                             textOverflow: 'ellipsis',
                           },
                           '&:hover': {
-                            backgroundColor: signedUpEventIds.includes(event.id) ? '#15803d' : '#b91c1c',
+                            backgroundColor: signedUpEventIds.includes(event._id) ? '#15803d' : '#b91c1c',
                           },
                         }}
                       />

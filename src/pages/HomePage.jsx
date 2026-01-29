@@ -172,7 +172,7 @@ const HomePage = ({ eventsProps }) => {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
                   {recommendations.map(event => (
                     <EventCard
-                      key={event.id}
+                      key={event._id}
                       event={event}
                       signUpForEvent={signUpForEvent}
                       cancelSignup={cancelSignup}
@@ -228,7 +228,7 @@ const HomePage = ({ eventsProps }) => {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
                   {newEvents.map(event => (
                     <EventCard
-                      key={event.id}
+                      key={event._id}
                       event={event}
                       signUpForEvent={signUpForEvent}
                       cancelSignup={cancelSignup}
@@ -248,7 +248,7 @@ const HomePage = ({ eventsProps }) => {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
                   {upcomingEvents.map(event => (
                     <EventCard
-                      key={event.id}
+                      key={event._id}
                       event={event}
                       signUpForEvent={signUpForEvent}
                       cancelSignup={cancelSignup}

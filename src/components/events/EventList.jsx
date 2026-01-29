@@ -85,7 +85,7 @@ const EventList = ({
           gap: 3 
         }}>
           {events.map((event) => (
-            <Box key={event.id}>
+            <Box key={event._id}>
               <EventCard
                 event={event}
                 signUpForEvent={signUpForEvent}

@@ -159,7 +159,7 @@ const SearchPage = ({ eventsProps }) => {
             >
               {results.map((event) => (
                 <EventCard
-                  key={event.id}
+                  key={event._id}
                   event={event}
                   signUpForEvent={signUpForEvent}
                   cancelSignup={cancelSignup}

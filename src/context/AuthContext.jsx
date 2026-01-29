@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     
-    const result = await authApi.updateProfile(user.id, updates);
+    const result = await authApi.updateProfile(user._id, updates);
     
     if (result.success) {
       setUser(result.data);
@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     
-    const result = await authApi.changePassword(user.id, currentPassword, newPassword);
+    const result = await authApi.changePassword(user._id, currentPassword, newPassword);
     
     if (!result.success) {
       setError(result.error);

@@ -9,7 +9,6 @@
  */
 
 import api from './config';
-import { v4 as uuidv4 } from 'uuid';
 
 // Create a reminder for a signup (24 hours before event start)
 export const createReminderForSignup = async (eventId, user) => {
@@ -21,9 +20,8 @@ export const createReminderForSignup = async (eventId, user) => {
   const reminderTime = new Date(start.getTime() - 24 * 60 * 60 * 1000);
 
   const reminder = {
-    id: uuidv4(),
-    userId: user.id,
-    eventId: event.id,
+    userId: user._id,
+    eventId: event._id,
     eventTitle: event.title,
     eventStart: event.startDate,
     reminderTime: reminderTime.toISOString(),
@@ -70,7 +68,7 @@ export const deleteUserEventReminders = async (eventId, userId) => {
   const res = await api.get(`/reminders?eventId=${eventId}&userId=${userId}`);
   if (!res.success) return res;
   for (const r of res.data) {
-    await api.delete(`/reminders/${r.id}`);
+    await api.delete(`/reminders/${r._id}`);
   }
   return { success: true };
 };
@@ -80,7 +78,7 @@ export const deleteEventReminders = async (eventId) => {
   const res = await api.get(`/reminders?eventId=${eventId}`);
   if (!res.success) return res;
   for (const r of res.data) {
-    await api.delete(`/reminders/${r.id}`);
+    await api.delete(`/reminders/${r._id}`);
   }
   return { success: true };
 };
@@ -99,7 +97,7 @@ export const startReminderPolling = (userId, onReminder) => {
       const dueAt = new Date(r.reminderTime);
       if (now >= dueAt) {
         // mark sent and emit with enriched event
-        await markReminderSent(r.id);
+        await markReminderSent(r._id);
         const ev = await api.get(`/events/${r.eventId}`);
         const enriched = { ...r, event: ev.success ? ev.data : null };
         onReminder(enriched);

@@ -153,7 +153,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
 
     let result;
     if (isEditing) {
-      result = await updateEvent(event.id, eventData);
+      result = await updateEvent(event._id, eventData);
     } else {
       result = await createEvent(eventData);
     }

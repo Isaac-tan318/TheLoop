@@ -134,7 +134,7 @@ function AppContent() {
   
   const fetchUserSignups = useCallback(async () => {
     if (!user) return;
-    const result = await eventsApi.getUserSignups(user.id);
+    const result = await eventsApi.getUserSignups(user._id);
     if (result.success) setUserSignups(result.data);
   }, [user]);
 
@@ -145,7 +145,7 @@ function AppContent() {
   
   const fetchOrganiserEvents = useCallback(async () => {
     if (!user || user.role !== 'organiser') return;
-    const result = await eventsApi.getEventsByOrganiser(user.id);
+    const result = await eventsApi.getEventsByOrganiser(user._id);
     if (result.success) setOrganiserEvents(result.data);
   }, [user]);
 
@@ -169,7 +169,7 @@ function AppContent() {
         });
       }
     };
-    const cleanup = remindersApi.startReminderPolling(user.id, handleReminder);
+    const cleanup = remindersApi.startReminderPolling(user._id, handleReminder);
     refreshReminders();
     return cleanup;
   }, [user]);
@@ -182,21 +182,21 @@ function AppContent() {
 
   const dismissReminder = useCallback(async (id) => {
     await remindersApi.dismissReminder(id);
-    setReminders(prev => prev.filter(r => r.id !== id));
-    if (activeReminder?.id === id) {
+    setReminders(prev => prev.filter(r => r._id !== id));
+    if (activeReminder?._id === id) {
       setActiveReminder(null);
       setShowNotification(false);
     }
   }, [activeReminder]);
 
   const closeNotification = useCallback(() => {
-    if (activeReminder) dismissReminder(activeReminder.id);
+    if (activeReminder) dismissReminder(activeReminder._id);
     setShowNotification(false);
   }, [activeReminder, dismissReminder]);
 
   const refreshReminders = useCallback(async () => {
     if (!user) return;
-    const res = await remindersApi.getUserReminders(user.id);
+    const res = await remindersApi.getUserReminders(user._id);
     if (res.success) setReminders(res.data);
   }, [user]);
 
@@ -205,27 +205,33 @@ function AppContent() {
     if (!user) return { success: false, error: 'Not logged in' };
     const result = await eventsApi.signUpForEvent(eventId, user, additionalInfo);
     if (result.success) {
-      await fetchEvents();
-      await fetchUserSignups();
-      await refreshReminders();
+      // Update local state optimistically instead of full refetch
+      setAllEvents(prev => prev.map(e => 
+        e._id === eventId ? { ...e, signupCount: (e.signupCount || 0) + 1 } : e
+      ));
+      setUserSignups(prev => [...prev, { eventId, userId: user._id }]);
+      refreshReminders();
     }
     return result;
-  }, [user, fetchEvents, fetchUserSignups, refreshReminders]);
+  }, [user, refreshReminders]);
 
   const cancelSignup = useCallback(async (eventId) => {
     if (!user) return { success: false, error: 'Not logged in' };
-    const result = await eventsApi.cancelSignup(eventId, user.id);
+    const result = await eventsApi.cancelSignup(eventId, user._id);
     if (result.success) {
-      await fetchEvents();
-      await fetchUserSignups();
-      await refreshReminders();
+      // Update local state optimistically instead of full refetch
+      setAllEvents(prev => prev.map(e => 
+        e._id === eventId ? { ...e, signupCount: Math.max((e.signupCount || 1) - 1, 0) } : e
+      ));
+      setUserSignups(prev => prev.filter(s => s.eventId !== eventId));
+      refreshReminders();
     }
     return result;
-  }, [user, fetchEvents, fetchUserSignups, refreshReminders]);
+  }, [user, refreshReminders]);
 
   const isSignedUp = useCallback(async (eventId) => {
     if (!user) return false;
-    const res = await eventsApi.isUserSignedUp(eventId, user.id);
+    const res = await eventsApi.isUserSignedUp(eventId, user._id);
     return res.success ? res.data : false;
   }, [user]);
 
@@ -241,7 +247,7 @@ function AppContent() {
   }, [user, fetchEvents, fetchOrganiserEvents]);
 
   const updateEvent = useCallback(async (eventId, updates) => {
-    const res = await eventsApi.updateEvent(eventId, updates, user?.id);
+    const res = await eventsApi.updateEvent(eventId, updates, user?._id);
     if (res.success) {
       await fetchEvents();
       await fetchOrganiserEvents();
@@ -250,7 +256,7 @@ function AppContent() {
   }, [user, fetchEvents, fetchOrganiserEvents]);
 
   const deleteEvent = useCallback(async (eventId) => {
-    const res = await eventsApi.deleteEvent(eventId, user?.id);
+    const res = await eventsApi.deleteEvent(eventId, user?._id);
     if (res.success) {
       await fetchEvents();
       await fetchOrganiserEvents();

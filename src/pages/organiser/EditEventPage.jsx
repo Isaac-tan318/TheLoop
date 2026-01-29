@@ -24,7 +24,7 @@ const EditEventPage = ({ eventsProps, interestsProps }) => {
       const result = await getEventById(id);
       if (result.success) {
         // Check if user is the organiser
-        if (result.data.organiserId !== user?.id) {
+        if (result.data.organiserId !== user?._id) {
           navigate('/organiser/dashboard');
           return;
         }

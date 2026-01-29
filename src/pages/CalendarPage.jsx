@@ -7,7 +7,7 @@ import EventCalendar from '../components/calendar/EventCalendar';
 
 const CalendarPage = ({ eventsProps }) => {
   const { events, userSignups } = eventsProps;
-  const signedUpEventIds = (userSignups || []).map(e => e.id);
+  const signedUpEventIds = (userSignups || []).map(e => e._id);
   return (
     <Box sx={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 64px)' }}>
       <Container maxWidth="lg" sx={{ py: 3 }}>
