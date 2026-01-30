@@ -224,4 +224,41 @@ router.delete('/signups/:id', authenticateToken, async (req, res, next) => {
   }
 });
 
+// Get due reminders for a user (uses index for efficient query)
+router.get('/signups/reminders/due', authenticateToken, async (req, res, next) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ message: 'userId required' });
+
+    const now = new Date();
+    const docs = await Signup.find({
+      userId,
+      'reminder.time': { $lte: now },
+      'reminder.sent': { $ne: true },
+      'reminder.dismissed': { $ne: true },
+    })
+      .populate('userId', 'name email')
+      .populate('eventId', 'title startDate location')
+      .lean();
+
+    // Map to enriched reminder format
+    const result = docs.map(doc => ({
+      _id: doc._id,
+      signupId: doc._id,
+      userId: doc.userId?._id || doc.userId,
+      eventId: doc.eventId?._id || doc.eventId,
+      eventTitle: doc.eventId?.title || 'Unknown Event',
+      eventStart: doc.eventId?.startDate,
+      eventLocation: doc.eventId?.location,
+      reminderTime: doc.reminder?.time,
+      sent: doc.reminder?.sent || false,
+      dismissed: doc.reminder?.dismissed || false,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

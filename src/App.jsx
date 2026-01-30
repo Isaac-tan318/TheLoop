@@ -182,7 +182,10 @@ function AppContent() {
 
   const dismissReminder = useCallback(async (id) => {
     await remindersApi.dismissReminder(id);
-    setReminders(prev => prev.filter(r => r._id !== id));
+    // Update reminder to dismissed instead of removing it
+    setReminders(prev => prev.map(r => 
+      r._id === id ? { ...r, dismissed: true } : r
+    ));
     if (activeReminder?._id === id) {
       setActiveReminder(null);
       setShowNotification(false);

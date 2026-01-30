@@ -70,44 +70,21 @@ export const startReminderPolling = (userId, onReminder) => {
   let timer = null;
 
   const tick = async () => {
-    const now = new Date();
-    
-    // Get user's signups
-    const res = await api.get(`/signups?userId=${userId}`);
+    // Use efficient server-side query with index
+    const res = await api.get(`/signups/reminders/due?userId=${userId}`);
     if (!res.success) return;
     
-    const signups = res.data || [];
+    const dueReminders = res.data || [];
     
-    for (const signup of signups) {
-      // Skip if no reminder time, already sent, or dismissed
-      if (!signup.reminder?.time) continue;
-      if (signup.reminder.sent || signup.reminder.dismissed) continue;
+    for (const reminder of dueReminders) {
+      // Mark as sent
+      await markReminderSent(reminder._id);
       
-      const dueAt = new Date(signup.reminder.time);
-      
-      if (now >= dueAt) {
-        // Mark as sent
-        await markReminderSent(signup._id);
-        
-        // Fetch event for enriched notification
-        const ev = await api.get(`/events/${signup.eventId}`);
-        const event = ev.success ? ev.data : null;
-        
-        const enriched = {
-          _id: signup._id,
-          signupId: signup._id,
-          userId: signup.userId,
-          eventId: signup.eventId,
-          eventTitle: event?.title || 'Unknown Event',
-          eventStart: event?.startDate,
-          reminderTime: signup.reminder.time,
-          sent: true,
-          dismissed: false,
-          event,
-        };
-        
-        onReminder(enriched);
-      }
+      // Trigger callback with enriched reminder
+      onReminder({
+        ...reminder,
+        sent: true,
+      });
     }
   };
 
