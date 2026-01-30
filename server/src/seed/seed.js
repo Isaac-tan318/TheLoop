@@ -146,21 +146,18 @@ function makeMockEvents(count = 3) {
     // Build additionalFields consistent with frontend
     const additionalFields = [
       {
-        id: 'experience',
         label: 'Experience Level',
         type: 'select',
         required: true,
         options: ['Beginner', 'Intermediate', 'Advanced'].join(',')
       },
       {
-        id: 'dietary',
         label: 'Dietary Requirements',
         type: 'select',
         required: false,
         options: ['None', 'Vegetarian', 'Vegan', 'Halal'].join(',')
       },
       {
-        id: 'notes',
         label: 'Notes for organiser',
         type: 'textarea',
         required: false

@@ -3,13 +3,11 @@
 // Schema for custom signup form fields (additionalFields from frontend)
 const additionalFieldSchema = new mongoose.Schema(
   {
-    id: { type: String, required: true },
     label: { type: String, required: true },
-    type: { type: String, enum: ['text', 'email', 'tel', 'number', 'textarea', 'select', 'checkbox', 'radio'], default: 'text' },
+    type: { type: String, enum: ['text', 'textarea', 'select', ], default: 'text' },
     required: { type: Boolean, default: false },
-    options: { type: String }, // Comma-separated options for select/radio
-  },
-  { _id: false }
+    options: { type: String }, // Comma-separated options for select
+  }
 );
 
 const eventSchema = new mongoose.Schema(
@@ -26,12 +24,10 @@ const eventSchema = new mongoose.Schema(
     signupsOpen: { type: Boolean, default: true },
     imageUrl: { type: String },
     additionalFields: [additionalFieldSchema],
-    embedding: { type: [Number], select: false }, // Pre-computed embedding vector for AI suggestions
+    embedding: { type: [Number], select: false }, // stored embedded vector for ai suggestions
   },
   { timestamps: true }
 );
 
-// Compound index for optimizing recommendation queries
-eventSchema.index({ interests: 1, startDate: 1 });
 
 export default mongoose.model('Event', eventSchema);

@@ -43,6 +43,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
     signupsOpen: true,
   });
   const [errors, setErrors] = useState({});
+  const [additionalFieldErrors, setAdditionalFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
@@ -96,28 +97,62 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
       ...prev,
       additionalFields: [
         ...prev.additionalFields,
-        { id: Date.now().toString(), label: '', type: 'text', required: false, options: '' },
+        { _id: Date.now().toString(), label: '', type: 'text', required: false, options: '' },
       ],
     }));
   };
 
-  const updateAdditionalField = (id, key, value) => {
+  const updateAdditionalField = (_id, key, value) => {
     setFormData(prev => ({
       ...prev,
-      additionalFields: prev.additionalFields.map(f => f.id === id ? { ...f, [key]: value } : f),
+      additionalFields: prev.additionalFields.map(f => f._id === _id ? { ...f, [key]: value } : f),
     }));
   };
 
-  const removeAdditionalField = (id) => {
+  const removeAdditionalField = (_id) => {
     setFormData(prev => ({
       ...prev,
-      additionalFields: prev.additionalFields.filter(f => f.id !== id),
+      additionalFields: prev.additionalFields.filter(f => f._id !== _id),
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate additional fields
+    const fieldErrors = {};
+    (formData.additionalFields || []).forEach((field, index) => {
+      const fieldErr = {};
+      
+      // Label is required
+      if (!field.label || !field.label.trim()) {
+        fieldErr.label = 'Question label is required';
+      } else if (field.label.trim().length < 3) {
+        fieldErr.label = 'Label must be at least 3 characters';
+      } else if (field.label.trim().length > 100) {
+        fieldErr.label = 'Label must be less than 100 characters';
+      }
+      
+      // Options required for select type
+      if (field.type === 'select') {
+        const opts = String(field.options || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (opts.length < 2) {
+          fieldErr.options = 'Please provide at least 2 comma-separated options';
+        } else if (opts.length > 20) {
+          fieldErr.options = 'Maximum 20 options allowed';
+        }
+      }
+      
+      if (Object.keys(fieldErr).length > 0) {
+        fieldErrors[field._id] = fieldErr;
+      }
+    });
+    
+    setAdditionalFieldErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      setSubmitError('Please fix the errors in your signup form questions.');
+      return;
+    }
     
     const dataToValidate = {
       ...formData,
@@ -156,7 +191,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
       startDate: new Date(formData.startDate).toISOString(),
       endDate: new Date(formData.endDate).toISOString(),
       additionalFields: (formData.additionalFields || []).map(f => ({
-        id: f.id,
+        _id: f._id,
         label: f.label.trim(),
         type: f.type,
         required: !!f.required,
@@ -335,21 +370,31 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
         </Typography>
 
         {formData.additionalFields?.map((field) => (
-          <Paper key={field.id} variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Paper 
+            key={field._id} 
+            variant="outlined" 
+            sx={{ 
+              p: 2, 
+              mb: 2,
+              borderColor: additionalFieldErrors[field._id] ? 'error.main' : undefined,
+            }}
+          >
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={5}>
                 <TextField
                   fullWidth
                   label="Question label"
                   value={field.label}
-                  onChange={(e) => updateAdditionalField(field.id, 'label', e.target.value)}
+                  onChange={(e) => updateAdditionalField(field._id, 'label', e.target.value)}
+                  error={!!additionalFieldErrors[field._id]?.label}
+                  helperText={additionalFieldErrors[field._id]?.label}
                 />
               </Grid>
               <Grid item xs={12} md={3}>
                 <Select
                   fullWidth
                   value={field.type}
-                  onChange={(e) => updateAdditionalField(field.id, 'type', e.target.value)}
+                  onChange={(e) => updateAdditionalField(field._id, 'type', e.target.value)}
                 >
                   <MenuItem value="text">Short text</MenuItem>
                   <MenuItem value="textarea">Long text</MenuItem>
@@ -361,14 +406,14 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
                   control={
                     <Checkbox
                       checked={!!field.required}
-                      onChange={(e) => updateAdditionalField(field.id, 'required', e.target.checked)}
+                      onChange={(e) => updateAdditionalField(field._id, 'required', e.target.checked)}
                     />
                   }
                   label="Required"
                 />
               </Grid>
               <Grid item xs={12} md={1} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                <IconButton color="error" onClick={() => removeAdditionalField(field.id)} aria-label="Remove question">
+                <IconButton color="error" onClick={() => removeAdditionalField(field._id)} aria-label="Remove question">
                   <DeleteIcon />
                 </IconButton>
               </Grid>
@@ -379,7 +424,9 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
                     fullWidth
                     label="Options (comma-separated)"
                     value={field.options || ''}
-                    onChange={(e) => updateAdditionalField(field.id, 'options', e.target.value)}
+                    onChange={(e) => updateAdditionalField(field._id, 'options', e.target.value)}
+                    error={!!additionalFieldErrors[field._id]?.options}
+                    helperText={additionalFieldErrors[field._id]?.options || 'e.g. Option 1, Option 2, Option 3'}
                   />
                 </Grid>
               )}

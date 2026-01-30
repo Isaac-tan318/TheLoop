@@ -104,7 +104,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
             navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
           } else {
             const init = {};
-            result.data.additionalFields.forEach(f => { init[f.id] = ''; });
+            result.data.additionalFields.forEach(f => { init[f._id] = ''; });
             setSignupAnswers(init);
             setSignupErrors({});
             setSignupFormOpen(true);
@@ -139,7 +139,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
     if (event?.additionalFields && event.additionalFields.length > 0) {
       const init = {};
-      event.additionalFields.forEach(f => { init[f.id] = ''; });
+      event.additionalFields.forEach(f => { init[f._id] = ''; });
       setSignupAnswers(init);
       setSignupErrors({});
       setSignupFormOpen(true);
@@ -159,11 +159,54 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   };
 
   const handleSubmitSignupForm = async () => {
-    
     const errs = {};
     (event?.additionalFields || []).forEach(f => {
-      if (f.required && !String(signupAnswers[f.id] ?? '').trim()) {
-        errs[f.id] = 'Required';
+      const value = String(signupAnswers[f._id] ?? '').trim();
+      
+      // Required field validation
+      if (f.required && !value) {
+        errs[f._id] = 'This field is required';
+        return;
+      }
+      
+      // Skip further validation if field is empty and not required
+      if (!value) return;
+      
+      // Type-specific validation
+      switch (f.type) {
+        case 'email':
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            errs[f._id] = 'Please enter a valid email address';
+          }
+          break;
+        case 'tel':
+          if (!/^[\d\s\-+()]{8,}$/.test(value)) {
+            errs[f._id] = 'Please enter a valid phone number';
+          }
+          break;
+        case 'number':
+          if (isNaN(Number(value))) {
+            errs[f._id] = 'Please enter a valid number';
+          }
+          break;
+        case 'select':
+          // Validate that selected value is one of the options
+          const opts = String(f.options || '').split(',').map(s => s.trim()).filter(Boolean);
+          if (opts.length > 0 && !opts.includes(value)) {
+            errs[f._id] = 'Please select a valid option';
+          }
+          break;
+        case 'text':
+        case 'textarea':
+          // Max length validation
+          if (f.type === 'text' && value.length > 200) {
+            errs[f._id] = 'Maximum 200 characters allowed';
+          } else if (f.type === 'textarea' && value.length > 1000) {
+            errs[f._id] = 'Maximum 1000 characters allowed';
+          }
+          break;
+        default:
+          break;
       }
     });
     setSignupErrors(errs);
@@ -528,15 +571,15 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                 if (field.type === 'textarea') {
                   return (
                     <TextField
-                      key={field.id}
+                      key={field._id}
                       label={field.label}
-                      value={signupAnswers[field.id] || ''}
-                      onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      value={signupAnswers[field._id] || ''}
+                      onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field._id]: e.target.value }))}
                       multiline
                       rows={4}
                       required={!!field.required}
-                      error={!!signupErrors[field.id]}
-                      helperText={signupErrors[field.id]}
+                      error={!!signupErrors[field._id]}
+                      helperText={signupErrors[field._id]}
                       fullWidth
                     />
                   );
@@ -544,13 +587,13 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                 if (field.type === 'select') {
                   const opts = String(field.options || '').split(',').map(s => s.trim()).filter(Boolean);
                   return (
-                    <Box key={field.id}>
+                    <Box key={field._id}>
                       <Typography sx={{ mb: 1 }}>{field.label}{field.required ? ' *' : ''}</Typography>
                       <Select
                         fullWidth
-                        value={signupAnswers[field.id] || ''}
-                        onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
-                        error={!!signupErrors[field.id]}
+                        value={signupAnswers[field._id] || ''}
+                        onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field._id]: e.target.value }))}
+                        error={!!signupErrors[field._id]}
                       >
                         <MenuItem value="">
                           <em>Select...</em>
@@ -559,21 +602,21 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                           <MenuItem key={opt} value={opt}>{opt}</MenuItem>
                         ))}
                       </Select>
-                      {signupErrors[field.id] && (
-                        <Typography variant="caption" color="error">{signupErrors[field.id]}</Typography>
+                      {signupErrors[field._id] && (
+                        <Typography variant="caption" color="error">{signupErrors[field._id]}</Typography>
                       )}
                     </Box>
                   );
                 }
                 return (
                   <TextField
-                    key={field.id}
+                    key={field._id}
                     label={field.label}
-                    value={signupAnswers[field.id] || ''}
-                    onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                    value={signupAnswers[field._id] || ''}
+                    onChange={(e) => setSignupAnswers(prev => ({ ...prev, [field._id]: e.target.value }))}
                     required={!!field.required}
-                    error={!!signupErrors[field.id]}
-                    helperText={signupErrors[field.id]}
+                    error={!!signupErrors[field._id]}
+                    helperText={signupErrors[field._id]}
                     fullWidth
                   />
                 );
@@ -636,10 +679,10 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                     {signup.additionalInfo && Object.keys(signup.additionalInfo).length > 0 && (
                       <Box sx={{ mt: 0.5, ml: 0.5 }}>
                         {event?.additionalFields?.map((field) => {
-                          const answer = signup.additionalInfo[field.id];
+                          const answer = signup.additionalInfo[field._id];
                           if (answer == null || String(answer).trim() === '') return null;
                           return (
-                            <Typography key={`${signup._id}-${field.id}`} variant="caption" sx={{ display: 'block', color: '#374151' }}>
+                            <Typography key={`${signup._id}-${field._id}`} variant="caption" sx={{ display: 'block', color: '#374151' }}>
                               {field.label}: {String(answer)}
                             </Typography>
                           );
