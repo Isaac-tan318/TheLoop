@@ -13,11 +13,11 @@ const MyEventsPage = ({ eventsProps }) => {
   const [tab, setTab] = useState(0);
 
   const upcomingEvents = useMemo(() => {
-    return userSignups.filter(event => isFuture(parseISO(event.startDate)));
+    return userSignups.filter(event => event.startDate && isFuture(parseISO(event.startDate)));
   }, [userSignups]);
 
   const pastEvents = useMemo(() => {
-    return userSignups.filter(event => isPast(parseISO(event.startDate)));
+    return userSignups.filter(event => event.startDate && isPast(parseISO(event.startDate)));
   }, [userSignups]);
 
   const handleTabChange = (event, newValue) => {

@@ -27,6 +27,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { trackEventView } from '../../api/analytics';
+import * as eventsApi from '../../api/events';
 
 const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignup, isSignedUp, loading, showMatchScore = false, clearSearchOnBack = false }) => {
   const navigate = useNavigate();
@@ -69,6 +70,12 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
   }, [event._id, isSignedUp, user]);
 
   const handleSignup = async () => {
+    // Check signups closed first (before any navigation)
+    if (event.signupsOpen === false) {
+      alert('Signups are currently closed for this event.');
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: `/events/${event._id}` } } });
       return;
@@ -79,13 +86,13 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
       return;
     }
 
-    if (event.signupsOpen === false) {
-      alert('Signups are currently closed for this event.');
-      return;
-    }
-
     if (Array.isArray(event.additionalFields) && event.additionalFields.length > 0) {
-      
+      // Fetch fresh event data to check if signups are still open before navigating
+      const freshResult = await eventsApi.getEventById(event._id);
+      if (!freshResult.success || freshResult.data.signupsOpen === false) {
+        alert('Signups are currently closed for this event.');
+        return;
+      }
       navigate(`/events/${event._id}`, { state: { openSignup: true } });
       return;
     }

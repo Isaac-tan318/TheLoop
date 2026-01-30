@@ -209,14 +209,18 @@ function AppContent() {
     const result = await eventsApi.signUpForEvent(eventId, user, additionalInfo);
     if (result.success) {
       // Update local state optimistically instead of full refetch
+      const event = allEvents.find(e => e._id === eventId);
       setAllEvents(prev => prev.map(e => 
         e._id === eventId ? { ...e, signupCount: (e.signupCount || 0) + 1 } : e
       ));
-      setUserSignups(prev => [...prev, { eventId, userId: user._id }]);
+      // Add full event data to userSignups for proper rendering
+      if (event) {
+        setUserSignups(prev => [...prev, { ...event, signedUpAt: new Date().toISOString() }]);
+      }
       refreshReminders();
     }
     return result;
-  }, [user, refreshReminders]);
+  }, [user, allEvents, refreshReminders]);
 
   const cancelSignup = useCallback(async (eventId) => {
     if (!user) return { success: false, error: 'Not logged in' };
@@ -226,7 +230,7 @@ function AppContent() {
       setAllEvents(prev => prev.map(e => 
         e._id === eventId ? { ...e, signupCount: Math.max((e.signupCount || 1) - 1, 0) } : e
       ));
-      setUserSignups(prev => prev.filter(s => s.eventId !== eventId));
+      setUserSignups(prev => prev.filter(s => s._id !== eventId));
       refreshReminders();
     }
     return result;

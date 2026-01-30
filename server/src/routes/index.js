@@ -187,6 +187,15 @@ router.get('/signups/:id', authenticateToken, async (req, res, next) => {
 
 router.post('/signups', authenticateToken, async (req, res, next) => {
   try {
+    // Validate that signups are open for this event
+    const event = await Event.findById(req.body.eventId).lean();
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    if (event.signupsOpen === false) {
+      return res.status(400).json({ message: 'Signups are closed for this event' });
+    }
+    
     const created = await Signup.create(req.body);
     res.status(201).json(created);
   } catch (err) {

@@ -100,7 +100,10 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
 
         
         if (location?.state?.openSignup && Array.isArray(result.data.additionalFields) && result.data.additionalFields.length > 0) {
-          if (!isAuthenticated) {
+          // Don't open signup form if signups are closed
+          if (result.data.signupsOpen === false) {
+            // Do nothing - signups are closed
+          } else if (!isAuthenticated) {
             navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
           } else {
             const init = {};

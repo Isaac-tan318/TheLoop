@@ -97,12 +97,17 @@ export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
     return { success: false, error: 'Already signed up for this event' };
   }
   
-  // Fetch event to calculate reminder time
+  // Fetch event to calculate reminder time and check if signups are open
   const eventResult = await api.get(`/events/${eventId}`);
   if (!eventResult.success) {
     return { success: false, error: 'Event not found' };
   }
   const event = eventResult.data;
+  
+  // Check if signups are open (double-check against server state)
+  if (event.signupsOpen === false) {
+    return { success: false, error: 'Signups are closed for this event' };
+  }
   
   // Create signup with embedded reminder (24h before event)
   const signup = {
