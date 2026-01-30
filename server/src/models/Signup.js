@@ -4,8 +4,6 @@ const signupSchema = new mongoose.Schema(
   {
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true, index: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    userName: { type: String },
-    userEmail: { type: String },
     signedUpAt: { type: Date, default: Date.now },
     additionalInfo: { type: mongoose.Schema.Types.Mixed, default: null },
     // Embedded reminder data

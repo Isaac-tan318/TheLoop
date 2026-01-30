@@ -18,7 +18,7 @@ const eventSchema = new mongoose.Schema(
     startDate: { type: Date, index: true },
     endDate: { type: Date },
     organiserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    interests: [{ type: String, index: true }],
+    interests: [{ type: String}],
     capacity: { type: Number },
     signupCount: { type: Number, default: 0 },
     signupsOpen: { type: Boolean, default: true },

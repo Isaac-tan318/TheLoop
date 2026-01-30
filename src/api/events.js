@@ -108,8 +108,6 @@ export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
   const signup = {
     eventId,
     userId: user._id,
-    userName: user.name,
-    userEmail: user.email,
     signedUpAt: new Date().toISOString(),
     additionalInfo: additionalInfo || null,
     reminder: {

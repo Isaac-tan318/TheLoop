@@ -6,7 +6,6 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import apiRoutes from './routes/index.js';
 import Event from './models/Event.js';
-import Interest from './models/Interest.js';
 import Signup from './models/Signup.js';
 import User from './models/User.js';
 

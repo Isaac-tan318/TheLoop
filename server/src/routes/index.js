@@ -6,7 +6,6 @@ import suggestionsRoutes from './suggestions.js';
 import User from '../models/User.js';
 import Event from '../models/Event.js';
 import Signup from '../models/Signup.js';
-import Interest from '../models/Interest.js';
 
 const router = express.Router();
 
@@ -91,65 +90,6 @@ router.delete('/events/:id', authenticateToken, async (req, res, next) => {
   }
 });
 
-// ========== INTERESTS (public reads, protected writes) ==========
-router.get('/interests', async (req, res, next) => {
-  try {
-    const docs = await Interest.find({}).lean();
-    res.json(docs);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/interests/:id', async (req, res, next) => {
-  try {
-    const doc = await Interest.findById(req.params.id).lean();
-    if (!doc) return res.status(404).json({ message: 'Not found' });
-    res.json(doc);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/interests', authenticateToken, async (req, res, next) => {
-  try {
-    const created = await Interest.create(req.body);
-    res.status(201).json(created);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.put('/interests/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const updated = await Interest.findByIdAndUpdate(req.params.id, req.body, { new: true, overwrite: true, runValidators: true }).lean();
-    if (!updated) return res.status(404).json({ message: 'Not found' });
-    res.json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.patch('/interests/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const updated = await Interest.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).lean();
-    if (!updated) return res.status(404).json({ message: 'Not found' });
-    res.json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.delete('/interests/:id', authenticateToken, async (req, res, next) => {
-  try {
-    const deleted = await Interest.findByIdAndDelete(req.params.id).lean();
-    if (!deleted) return res.status(404).json({ message: 'Not found' });
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
-});
-
 // ========== USERS (fully protected) ==========
 router.get('/users', authenticateToken, async (req, res, next) => {
   try {
@@ -214,8 +154,15 @@ router.delete('/users/:id', authenticateToken, async (req, res, next) => {
 router.get('/signups', authenticateToken, async (req, res, next) => {
   try {
     const filter = { ...req.query };
-    const docs = await Signup.find(filter).lean();
-    res.json(docs);
+    const docs = await Signup.find(filter).populate('userId', 'name email').lean();
+    // Map user data to userName/userEmail for frontend compatibility
+    const result = docs.map(doc => ({
+      ...doc,
+      userName: doc.userId?.name || 'Unknown User',
+      userEmail: doc.userId?.email || '',
+      userId: doc.userId?._id || doc.userId,
+    }));
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -223,9 +170,16 @@ router.get('/signups', authenticateToken, async (req, res, next) => {
 
 router.get('/signups/:id', authenticateToken, async (req, res, next) => {
   try {
-    const doc = await Signup.findById(req.params.id).lean();
+    const doc = await Signup.findById(req.params.id).populate('userId', 'name email').lean();
     if (!doc) return res.status(404).json({ message: 'Not found' });
-    res.json(doc);
+    // Map user data for frontend compatibility
+    const result = {
+      ...doc,
+      userName: doc.userId?.name || 'Unknown User',
+      userEmail: doc.userId?.email || '',
+      userId: doc.userId?._id || doc.userId,
+    };
+    res.json(result);
   } catch (err) {
     next(err);
   }
