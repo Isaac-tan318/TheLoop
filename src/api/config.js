@@ -1,6 +1,4 @@
-/**
- * API Configuration
- */
+// API Configuration
 
 // Base URL for the backend API
 export const API_BASE_URL = 'http://localhost:3001';
@@ -15,16 +13,12 @@ const defaultOptions = {
   },
 };
 
-/**
- * Get auth token from localStorage
- */
+// Get auth token from localStorage
 const getAuthToken = () => {
   return localStorage.getItem('theloop_token');
 };
 
-/**
- * Make an authenticated API request
- */
+// Make an authenticated API request
 export const apiRequest = async (endpoint, options = {}) => {
   const token = getAuthToken();
   
@@ -86,9 +80,7 @@ export const apiRequest = async (endpoint, options = {}) => {
   }
 };
 
-/**
- * API helper methods
- */
+// API helper methods
 export const api = {
   get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
   

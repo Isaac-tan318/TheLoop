@@ -3,7 +3,7 @@
 //  Used for AI-powered event suggestions
 
 //  Free tier: 60 requests/min, 1,500 requests/day
-//  Model: gemini-embedding-001 (768 dimensions)
+//  Model: gemini-embedding-001 (3072 dimensions)
  
 import dotenv from 'dotenv';
 dotenv.config();
@@ -127,7 +127,7 @@ export function buildUserProfileText(user) {
   if (user.viewHistory?.length) {
     const recentViews = user.viewHistory
       .slice(-5)
-      .map(h => h.eventTitle)
+      .map(h => h.eventId?.title)
       .filter(Boolean)
       .join(', ');
     if (recentViews) {

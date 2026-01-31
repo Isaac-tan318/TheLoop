@@ -1,7 +1,5 @@
-/**
- * Protected Route Component
- * Handles route protection based on authentication and role
- */
+// Protected Route Component
+// Handles route protection based on authentication and role
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

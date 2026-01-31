@@ -1,6 +1,4 @@
-/**
- * Loading Spinner Component
- */
+// Loading Spinner Component
 
 import { Box, CircularProgress, Typography } from '@mui/material';
 

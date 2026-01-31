@@ -1,6 +1,4 @@
-/**
- * Event Detail Page
- */
+// Event Detail Page
 
 import { useParams } from 'react-router-dom';
 import { Container, Box } from '@mui/material';

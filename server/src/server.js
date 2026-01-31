@@ -4,7 +4,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import apiRoutes from './routes/index.js';
+import apiRoutes from './routes/router.js';
 import Event from './models/Event.js';
 import Signup from './models/Signup.js';
 import User from './models/User.js';

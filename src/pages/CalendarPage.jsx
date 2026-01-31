@@ -1,6 +1,4 @@
-/**
- * Calendar Page
- */
+// Calendar Page
 
 import { Container, Box, Typography } from '@mui/material';
 import EventCalendar from '../components/calendar/EventCalendar';

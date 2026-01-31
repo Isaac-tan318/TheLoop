@@ -1,6 +1,4 @@
-/**
- * Authentication API (Backend Integration)
- */
+// Authentication API (Backend Integration)
 
 import { API_BASE_URL, API_PREFIX } from './config';
 
@@ -34,9 +32,7 @@ const isTokenExpired = (token) => {
   }
 };
 
-/**
- * Register a new user
- */
+// Register a new user
 export const register = async (userData) => {
   if (!userData.email || !userData.password || !userData.name || !userData.role) {
     return { success: false, error: 'All fields are required' };
@@ -112,18 +108,14 @@ export const login = async (email, password) => {
   }
 };
 
-/**
- * Logout user
- */
+// Logout user
 export const logout = async () => {
   localStorage.removeItem('theloop_token');
   localStorage.removeItem('theloop_user');
   return { success: true };
 };
 
-/**
- * Get current user - uses cached data if available, otherwise fetches from backend
- */
+// Get current user - uses cached data if available, otherwise fetches from backend
 export const getCurrentUser = async () => {
   const token = localStorage.getItem('theloop_token');
   const cachedUser = localStorage.getItem('theloop_user');
@@ -185,9 +177,7 @@ export const getCurrentUser = async () => {
   }
 };
 
-/**
- * Update user profile
- */
+// Update user profile
 export const updateProfile = async (userId, profileData) => {
   const token = localStorage.getItem('theloop_token');
   
@@ -225,9 +215,7 @@ export const updateProfile = async (userId, profileData) => {
   }
 };
 
-/**
- * Change password (Note: Backend doesn't have this endpoint yet)
- */
+// Change password (Note: Backend doesn't have this endpoint yet)
 export const changePassword = async (userId, currentPassword, newPassword) => {
   if (!currentPassword || !newPassword) {
     return { success: false, error: 'Both passwords are required' };
@@ -241,24 +229,18 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
   return { success: false, error: 'Change password functionality not yet implemented on server' };
 };
 
-/**
- * Check if user is authenticated (based on token presence)
- */
+// Check if user is authenticated (based on token presence)
 export const isAuthenticated = () => {
   return !!localStorage.getItem('theloop_token');
 };
 
-/**
- * Get stored user from localStorage
- */
+// Get stored user from localStorage
 export const getStoredUser = () => {
   const user = localStorage.getItem('theloop_user');
   return user ? JSON.parse(user) : null;
 };
 
-/**
- * Get stored token from localStorage
- */
+// Get stored token from localStorage
 export const getStoredToken = () => {
   return localStorage.getItem('theloop_token');
 };

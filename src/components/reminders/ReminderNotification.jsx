@@ -1,7 +1,5 @@
-/**
- * Reminder Notification Component
- * Displays popup notifications for upcoming events
- */
+// Reminder Notification Component
+// Displays popup notifications for upcoming events
 
 import { useNavigate } from 'react-router-dom';
 import {

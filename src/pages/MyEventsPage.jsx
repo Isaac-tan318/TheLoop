@@ -1,7 +1,5 @@
-/**
- * My Events Page
- * Shows events the user has signed up for
- */
+// My Events Page
+// Shows events the user has signed up for
 
 import { Container, Box, Typography, Tabs, Tab, Paper } from '@mui/material';
 import { useState, useMemo } from 'react';

@@ -178,7 +178,7 @@ const HomePage = ({ eventsProps }) => {
                       cancelSignup={cancelSignup}
                       isSignedUp={isSignedUp}
                       loading={eventsLoading}
-                      showMatchScore={recommendationType === 'personalized'}
+                      showMatchScore={recommendationType === 'personalized' || recommendationType === 'personalized_vector'}
                     />
                   ))}
                 </Box>

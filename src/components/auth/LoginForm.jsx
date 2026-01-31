@@ -1,6 +1,4 @@
-/**
- * Login Form Component
- */
+// Login Form Component
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';

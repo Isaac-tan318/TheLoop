@@ -1,6 +1,4 @@
-/**
- * Register Form Component
- */
+// Register Form Component
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';

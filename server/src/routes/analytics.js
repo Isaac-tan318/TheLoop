@@ -1,7 +1,5 @@
-/**
- * Analytics routes for tracking user behavior
- * Used to improve personalized recommendations
- */
+// Analytics routes for tracking user behavior
+// Used to improve personalized recommendations
 
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
@@ -28,11 +26,9 @@ async function pruneHistory(Model, userId) {
   }
 }
 
-/**
- * POST /api/analytics/search
- * Record a search query for the authenticated user
- * Body: { query: string }
- */
+// POST /api/analytics/search
+// Record a search query for the authenticated user
+// Body: { query: string }
 router.post('/search', authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -55,11 +51,9 @@ router.post('/search', authenticateToken, async (req, res, next) => {
   }
 });
 
-/**
- * POST /api/analytics/view
- * Record an event view/click for the authenticated user
- * Body: { eventId: string }
- */
+// POST /api/analytics/view
+// Record an event view/click for the authenticated user
+// Body: { eventId: string }
 router.post('/view', authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -78,7 +72,6 @@ router.post('/view', authenticateToken, async (req, res, next) => {
     const viewEntry = await ViewHistory.create({
       userId,
       eventId,
-      eventTitle: event.title,
     });
 
     await pruneHistory(ViewHistory, userId);
@@ -89,10 +82,8 @@ router.post('/view', authenticateToken, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/analytics/history
- * Get the authenticated user's search and view history
- */
+// GET /api/analytics/history
+// Get the authenticated user's search and view history
 router.get('/history', authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -116,10 +107,8 @@ router.get('/history', authenticateToken, async (req, res, next) => {
   }
 });
 
-/**
- * DELETE /api/analytics/history
- * Clear the authenticated user's search and view history
- */
+// DELETE /api/analytics/history
+// Clear the authenticated user's search and view history
 router.delete('/history', authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user._id;

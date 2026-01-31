@@ -1,6 +1,4 @@
-/**
- * 401 Unauthorized Page
- */
+// 401 Unauthorized Page
 
 import { Box, Typography, Button, Container } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';

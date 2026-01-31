@@ -1,6 +1,4 @@
-/**
- * Login Page
- */
+// Login Page
 
 import LoginForm from '../components/auth/LoginForm';
 

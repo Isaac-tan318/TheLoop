@@ -1,6 +1,4 @@
-/**
- * 404 Not Found Page
- */
+// 404 Not Found Page
 
 import { Box, Typography, Button, Container } from '@mui/material';
 import { useNavigate } from 'react-router-dom';

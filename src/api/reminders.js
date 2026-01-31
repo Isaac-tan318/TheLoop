@@ -1,13 +1,11 @@
-2/**
- * Reminders API (now uses Signup model with embedded reminder fields)
- *
- * Reminders are embedded in signups - no separate /reminders endpoint needed.
- * Uses /signups with reminder.* fields:
- *   - reminder.enabled: Boolean
- *   - reminder.sent: Boolean  
- *   - reminder.dismissed: Boolean
- *   - reminder.time: Date (24h before event start)
- */
+// Reminders API (now uses Signup model with embedded reminder fields)
+//
+// Reminders are embedded in signups - no separate /reminders endpoint needed.
+// Uses /signups with reminder.* fields:
+//   - reminder.enabled: Boolean
+//   - reminder.sent: Boolean  
+//   - reminder.dismissed: Boolean
+//   - reminder.time: Date (24h before event start)
 
 import api from './config';
 

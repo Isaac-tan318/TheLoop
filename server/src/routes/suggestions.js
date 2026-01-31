@@ -1,6 +1,6 @@
 
 //  AI powered event suggestions
-//  Uses Google Gemini embeddings to rank events by relevance to user profile
+//  Uses Google Gemini embeddings with MongoDB Atlas Vector Search
 
 import express from 'express';
 import mongoose from 'mongoose';
@@ -12,9 +12,7 @@ import SearchHistory from '../models/SearchHistory.js';
 import ViewHistory from '../models/ViewHistory.js';
 import {
   buildUserProfileText,
-  buildEventText,
   getEmbedding,
-  cosineSimilarity,
 } from '../utils/gemini.js';
 
 const router = express.Router();
@@ -29,51 +27,94 @@ router.get('/', authenticateToken, async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const includeSignedUp = req.query.includeSignedUp === 'true';
 
-    // Build context needed for ranking
+    // Build context for ranking
     const context = await buildUserContext(userId, includeSignedUp);
     if (!context.user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get candidate events
-    const candidateEvents = await getCandidateEvents(context.signedUpEventIds, includeSignedUp);
-    if (!candidateEvents.length) {
-      return res.json({ events: [], recommendationType: 'popular' });
-    }
-
-    // Determine ranking strategy
+    // Check if user has enough data for personalized recommendations
     const hasInterests = context.user.interests?.length > 0;
     const hasBehaviorSignals = context.searchHistory.length > 0 || context.viewHistory.length > 0 || context.signups.length > 0;
     const hasGeminiKey = process.env.GEMINI_API_KEY?.trim().length > 0;
+    const canUseVectorSearch = hasGeminiKey && (hasInterests || hasBehaviorSignals);
 
-    let rankedEvents;
-    let recommendationType;
+    let vectorResults = [];
+    let recommendationType = 'popular';
 
-    // Try AI ranking, fall back to rule-based if it fails or isn't available
-    if (hasGeminiKey && (hasInterests || hasBehaviorSignals)) {
+    // Use vector search if user has enough data
+    if (canUseVectorSearch) {
       try {
-        rankedEvents = await aiRanking(context.enhancedUser, candidateEvents, limit);
-        recommendationType = 'personalized';
-      } catch (aiErr) {
-        console.error('AI ranking failed, using fallback:', aiErr.message);
-        rankedEvents = null;
+        const userProfileText = buildUserProfileText(context.enhancedUser);
+        const userEmbedding = await getEmbedding(userProfileText);
+
+        // Run Vector Search Pipeline
+        const pipeline = [
+          {
+            $vectorSearch: {
+              index: 'default',
+              path: 'embedding',
+              queryVector: userEmbedding,
+              numCandidates: 100,
+              limit: 50,
+              filter: {
+                $and: [
+                  { startDate: { $gte: new Date() } },
+                  { signupsOpen: { $eq: true } }
+                ]
+              }
+            }
+          },
+          {
+            $project: {
+              title: 1,
+              description: 1,
+              location: 1,
+              startDate: 1,
+              endDate: 1,
+              organiserId: 1,
+              interests: 1,
+              capacity: 1,
+              signupCount: 1,
+              signupsOpen: 1,
+              imageUrl: 1,
+              similarityScore: { $meta: 'vectorSearchScore' }
+            }
+          }
+        ];
+
+        vectorResults = await Event.aggregate(pipeline);
+        if (vectorResults.length > 0) {
+          // scale vector scores by 0.7x so boosts can be applied to events
+          vectorResults = vectorResults.map(event => ({
+            ...event,
+            similarityScore: (event.similarityScore || 0) * 0.7
+          }));
+          recommendationType = 'personalized_vector';
+        }
+      } catch (err) {
+        console.error('Vector search failed, falling back:', err.message);
       }
     }
 
-    // Use fallback if AI ranking wasn't attempted or failed
-    if (!rankedEvents) {
-      rankedEvents = fallbackRanking(context.enhancedUser, candidateEvents, {
+    // Fallback if Vector Search returns nothing or wasn't attempted
+    let candidates = vectorResults;
+    if (candidates.length === 0) {
+      candidates = await getCandidateEvents(context.signedUpEventIds, includeSignedUp);
+      candidates = fallbackRanking(context.enhancedUser, candidates, {
         signedUpEventIds: context.signedUpEventIds,
         usePopularityOnly: !hasInterests && !hasBehaviorSignals,
       });
       recommendationType = hasInterests || hasBehaviorSignals ? 'personalized' : 'popular';
     }
 
-    // Apply activity-based boosts to final scores
-    const boostedEvents = applyBoosts(
-      rankedEvents.slice(0, limit),
-      context
-    );
+    // Filter out signed-up events
+    if (!includeSignedUp && context.signedUpEventIds.size > 0) {
+      candidates = candidates.filter(e => !context.signedUpEventIds.has(e._id.toString()));
+    }
+
+    // Apply boosts
+    const boostedEvents = applyBoosts(candidates.slice(0, limit), context);
 
     res.json({
       events: boostedEvents,
@@ -84,9 +125,7 @@ router.get('/', authenticateToken, async (req, res, next) => {
   }
 });
 
-/**
- * Build user context with all data needed for ranking
- */
+// Build user context with all data needed for ranking
 async function buildUserContext(userId, includeSignedUp) {
   const user = await User.findById(userId).lean({ virtuals: true });
   if (!user) return { user: null };
@@ -97,8 +136,8 @@ async function buildUserContext(userId, includeSignedUp) {
 
   const [signups, searchHistory, viewHistory] = await Promise.all([
     Signup.find({ userId, createdAt: { $gte: sixMonthsAgo } }).lean({ virtuals: true }),
-    SearchHistory.find({ userId }).sort({ timestamp: -1 }).limit(5).lean(),
-    ViewHistory.find({ userId }).sort({ timestamp: -1 }).limit(15).lean(),
+    SearchHistory.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
+    ViewHistory.find({ userId }).sort({ createdAt: -1 }).limit(15).populate('eventId', 'title').lean(),
   ]);
 
   const signedUpEventIds = new Set(
@@ -113,8 +152,8 @@ async function buildUserContext(userId, includeSignedUp) {
     activitySignals: { signupCount: signups.length },
     pastSignupInterests,
     signupInterestWeights,
-    searchHistory: searchHistory.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
-    viewHistory: viewHistory.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
+    searchHistory: searchHistory.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
+    viewHistory: viewHistory.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
   };
 
   return {
@@ -128,9 +167,7 @@ async function buildUserContext(userId, includeSignedUp) {
   };
 }
 
-/**
- * Get candidate events for suggestions
- */
+// Get candidate events for suggestions (fallback only)
 async function getCandidateEvents(signedUpEventIds, includeSignedUp) {
   const eventFilter = { startDate: { $gte: new Date() } };
 
@@ -143,67 +180,13 @@ async function getCandidateEvents(signedUpEventIds, includeSignedUp) {
     }
   }
 
-  // Fetch events with pre-computed embeddings
   return Event.find(eventFilter)
-    .select('+embedding')
     .sort({ startDate: 1 })
     .limit(100)
     .lean({ virtuals: true });
 }
 
-/**
- * AI-powered ranking using embeddings
- * Only generates user embedding; uses pre-stored event embeddings
- */
-async function aiRanking(enhancedUser, candidateEvents, limit) {
-  // Generate user profile embedding
-  const userProfileText = buildUserProfileText(enhancedUser);
-  const userEmbedding = await getEmbedding(userProfileText);
-
-  // Separate events with/without embeddings
-  const eventsWithEmbedding = [];
-  const eventsWithoutEmbedding = [];
-
-  for (const event of candidateEvents) {
-    if (event.embedding?.length > 0) {
-      eventsWithEmbedding.push(event);
-    } else {
-      eventsWithoutEmbedding.push(event);
-    }
-  }
-
-  // Score events with pre-computed embeddings using in-memory cosine similarity
-  const scoredWithEmbedding = eventsWithEmbedding.map((event) => ({
-    ...event,
-    similarityScore: cosineSimilarity(userEmbedding, event.embedding),
-  }));
-
-  // For events without embeddings, generate on the fly (and optionally cache)
-  let scoredWithoutEmbedding = [];
-  if (eventsWithoutEmbedding.length > 0) {
-    const eventTexts = eventsWithoutEmbedding.map(buildEventText);
-    const embeddings = await Promise.all(eventTexts.map((text) => getEmbedding(text)));
-
-    scoredWithoutEmbedding = eventsWithoutEmbedding.map((event, i) => {
-      // Cache the embedding for future requests 
-      Event.updateOne({ _id: event._id }, { embedding: embeddings[i] }).catch(() => {});
-      return {
-        ...event,
-        similarityScore: cosineSimilarity(userEmbedding, embeddings[i]),
-      };
-    });
-  }
-
-  // Combine and sort
-  const allScored = [...scoredWithEmbedding, ...scoredWithoutEmbedding];
-  allScored.sort((a, b) => b.similarityScore - a.similarityScore);
-
-  return allScored.slice(0, limit);
-}
-
-/**
- * Apply activity-based boosts to ranked events
- */
+// Apply boosts to ranked events
 function applyBoosts(rankedEvents, context) {
   const { user, enhancedUser, signups, signedUpEventIds } = context;
   const userInterestsSet = new Set(user.interests || []);
@@ -225,67 +208,67 @@ function applyBoosts(rankedEvents, context) {
     const eventId = event._id?.toString?.() || String(event._id);
     const eventOrganiserId = event.organiserId?.toString?.() || String(event.organiserId);
 
-    // Interest overlap boost (0-0.25)
+    // Interest overlap boost (0-0.10)
     if (userInterestsSet.size > 0 && Array.isArray(event.interests)) {
       const overlapCount = event.interests.filter((interest) => userInterestsSet.has(interest)).length;
       const overlapRatio = overlapCount / userInterestsSet.size;
-      boost += Math.min(overlapRatio * 0.25, 0.25);
+      boost += Math.min(overlapRatio * 0.10, 0.10);
     }
 
-    // Signup interest affinity boost (0-0.25)
+    // Signup interest affinity boost (0-0.10)
     if (event.interests?.length) {
       const signupAffinity = event.interests.reduce(
         (sum, interest) => sum + (signupInterestWeights[interest] || 0),
         0
       );
-      boost += Math.min(signupAffinity * 0.25, 0.25);
+      boost += Math.min(signupAffinity * 0.10, 0.10);
     }
 
-    // Organizer affinity boost (0.05)
+    // Organizer affinity boost (0.02)
     if (previousOrganizerIds.has(eventOrganiserId)) {
-      boost += 0.05;
+      boost += 0.02;
     }
 
-    // Search history recency decay boost (0-0.15)
+    // Search history recency decay boost (0-0.05)
     // If event matches a recent search query, apply exponential decay boost
     if (searchHistory.length > 0) {
       const eventText = `${event.title} ${event.description} ${(event.interests || []).join(' ')}`.toLowerCase();
       for (const search of searchHistory) {
         const query = (search.query || '').toLowerCase();
         if (query && eventText.includes(query)) {
-          const daysSinceSearch = (Date.now() - new Date(search.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-          boost += 0.15 * Math.exp(-0.1 * daysSinceSearch);
+          const daysSinceSearch = (Date.now() - new Date(search.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+          boost += 0.05 * Math.exp(-0.1 * daysSinceSearch);
           break; // Only apply once per event
         }
       }
     }
 
-    // View history recency decay boost (0-0.10)
+    // View history recency decay boost (0-0.03)
     // If user recently viewed this event, apply exponential decay boost
     if (viewHistory.length > 0) {
       for (const view of viewHistory) {
         const viewedEventId = view.eventId?.toString?.() || String(view.eventId);
         if (viewedEventId === eventId) {
-          const daysSinceView = (Date.now() - new Date(view.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-          boost += 0.10 * Math.exp(-0.1 * daysSinceView);
+          const daysSinceView = (Date.now() - new Date(view.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+          boost += 0.03 * Math.exp(-0.1 * daysSinceView);
           break; // Only apply once per event
         }
       }
     }
 
+    const finalScore = Math.min((event.similarityScore || 0) + boost, 1.0);
     return {
       ...event,
-      embedding: undefined, // Don't send embedding to client
-      similarityScore: Math.min((event.similarityScore || 0) + boost, 1.0),
+      embedding: undefined, // to not send embedding to client
+      similarityScore: finalScore,
+      similarityPercentage: Math.round(finalScore * 100),
       isSignedUp: signedUpEventIds.has(eventId),
     };
   }).sort((a, b) => b.similarityScore - a.similarityScore);
 }
 
-/**
- * Fallback rule-based ranking when Gemini API is unavailable
- * When usePopularityOnly is true (user has no interests), ranks purely by popularity + recency
- */
+// Fallback rule-based ranking when Gemini API is unavailable
+// When usePopularityOnly is true (user has no interests), ranks purely by popularity + recency
 function fallbackRanking(user, events, { signedUpEventIds, usePopularityOnly = false }) {
   const userInterests = new Set(user.interests || []);
   const signupInterestWeights = user.signupInterestWeights || {};

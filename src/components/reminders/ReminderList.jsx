@@ -1,7 +1,5 @@
-/**
- * Reminder List Component
- * Displays all reminders for the user
- */
+// Reminder List Component
+// Displays all reminders for the user
 
 import { useNavigate } from 'react-router-dom';
 import {

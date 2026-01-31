@@ -1,6 +1,4 @@
-/**
- * Register Page
- */
+// Register Page
 
 import RegisterForm from '../components/auth/RegisterForm';
 

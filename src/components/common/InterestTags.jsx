@@ -1,7 +1,5 @@
-/**
- * Interest Tags Component
- * Reusable component for selecting interest tags
- */
+// Interest Tags Component
+// Reusable component for selecting interest tags
 
 import { useState } from 'react';
 import {

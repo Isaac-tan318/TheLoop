@@ -1,6 +1,4 @@
-/**
- * Organiser Dashboard Page
- */
+// Organiser Dashboard Page
 
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';

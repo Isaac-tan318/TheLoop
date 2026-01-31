@@ -69,9 +69,7 @@ export const updateEvent = async (eventId, updates, organiserId) => {
   return await api.patch(`/events/${eventId}`, updates);
 };
 
-/**
- * Toggle signups open/closed for an event
- */
+// Toggle signups open/closed for an event
 export const toggleSignups = async (eventId, signupsOpen) => {
   return await api.patch(`/events/${eventId}`, { signupsOpen });
 };
@@ -195,10 +193,8 @@ export const getEventSignups = async (eventId, organiserId) => {
   return await api.get(`/signups?eventId=${eventId}`);
 };
 
-/**
- * Get personalized event recommendations for the current user
- * Returns popular events if user has no interests set
- */
+// Get personalized event recommendations for the current user
+// Returns popular events if user has no interests set
 export const getRecommendedEvents = async (limit = 6) => {
   const result = await api.get(`/suggestions?limit=${limit}`);
   if (!result.success) return result;
