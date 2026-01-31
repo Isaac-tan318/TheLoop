@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireSelfOrForbid, requireOrganiser } from '../middleware/auth.js';
 import authRoutes from './auth.js';
 import analyticsRoutes from './analytics.js';
 import suggestionsRoutes from './suggestions.js';
@@ -51,7 +51,7 @@ router.get('/events/:id', async (req, res, next) => {
   }
 });
 
-router.post('/events', authenticateToken, async (req, res, next) => {
+router.post('/events', authenticateToken, requireOrganiser, async (req, res, next) => {
   try {
     const created = await Event.create(req.body);
     res.status(201).json(created);
@@ -60,30 +60,45 @@ router.post('/events', authenticateToken, async (req, res, next) => {
   }
 });
 
-router.put('/events/:id', authenticateToken, async (req, res, next) => {
+router.put('/events/:id', authenticateToken, requireOrganiser, async (req, res, next) => {
   try {
+    // Verify the user owns this event
+    const event = await Event.findById(req.params.id).lean();
+    if (!event) return res.status(404).json({ message: 'Not found' });
+    if (event.organiserId.toString() !== req.user._id) {
+      return res.status(403).json({ message: 'You can only edit your own events' });
+    }
     const updated = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true, overwrite: true, runValidators: true }).lean();
-    if (!updated) return res.status(404).json({ message: 'Not found' });
     res.json(updated);
   } catch (err) {
     next(err);
   }
 });
 
-router.patch('/events/:id', authenticateToken, async (req, res, next) => {
+router.patch('/events/:id', authenticateToken, requireOrganiser, async (req, res, next) => {
   try {
+    // Verify the user owns this event
+    const event = await Event.findById(req.params.id).lean();
+    if (!event) return res.status(404).json({ message: 'Not found' });
+    if (event.organiserId.toString() !== req.user._id) {
+      return res.status(403).json({ message: 'You can only edit your own events' });
+    }
     const updated = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).lean();
-    if (!updated) return res.status(404).json({ message: 'Not found' });
     res.json(updated);
   } catch (err) {
     next(err);
   }
 });
 
-router.delete('/events/:id', authenticateToken, async (req, res, next) => {
+router.delete('/events/:id', authenticateToken, requireOrganiser, async (req, res, next) => {
   try {
-    const deleted = await Event.findByIdAndDelete(req.params.id).lean();
-    if (!deleted) return res.status(404).json({ message: 'Not found' });
+    // Verify the user owns this event
+    const event = await Event.findById(req.params.id).lean();
+    if (!event) return res.status(404).json({ message: 'Not found' });
+    if (event.organiserId.toString() !== req.user._id) {
+      return res.status(403).json({ message: 'You can only delete your own events' });
+    }
+    await Event.findByIdAndDelete(req.params.id);
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -120,7 +135,7 @@ router.post('/users', authenticateToken, async (req, res, next) => {
   }
 });
 
-router.put('/users/:id', authenticateToken, async (req, res, next) => {
+router.put('/users/:id', authenticateToken, requireSelfOrForbid, async (req, res, next) => {
   try {
     const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, overwrite: true, runValidators: true }).lean();
     if (!updated) return res.status(404).json({ message: 'Not found' });
@@ -130,7 +145,7 @@ router.put('/users/:id', authenticateToken, async (req, res, next) => {
   }
 });
 
-router.patch('/users/:id', authenticateToken, async (req, res, next) => {
+router.patch('/users/:id', authenticateToken, requireSelfOrForbid, async (req, res, next) => {
   try {
     const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).lean();
     if (!updated) return res.status(404).json({ message: 'Not found' });
@@ -140,7 +155,7 @@ router.patch('/users/:id', authenticateToken, async (req, res, next) => {
   }
 });
 
-router.delete('/users/:id', authenticateToken, async (req, res, next) => {
+router.delete('/users/:id', authenticateToken, requireSelfOrForbid, async (req, res, next) => {
   try {
     const deleted = await User.findByIdAndDelete(req.params.id).lean();
     if (!deleted) return res.status(404).json({ message: 'Not found' });

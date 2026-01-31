@@ -21,6 +21,22 @@ export function authenticateToken(req, res, next) {
   }
 }
 
+// Middleware to check if user is modifying their own resource
+export function requireSelfOrForbid(req, res, next) {
+  if (req.user._id !== req.params.id) {
+    return res.status(403).json({ message: 'You can only modify your own account' });
+  }
+  next();
+}
+
+// Middleware to check if user has organiser role
+export function requireOrganiser(req, res, next) {
+  if (req.user.role !== 'organiser') {
+    return res.status(403).json({ message: 'Only organisers can perform this action' });
+  }
+  next();
+}
+
 export function generateToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '72h' });
 }
