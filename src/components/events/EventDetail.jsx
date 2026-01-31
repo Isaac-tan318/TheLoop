@@ -677,7 +677,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                   <Box sx={{ width: '100%' }}>
                     <ListItemText
                       primary={signup.userName}
-                      secondary={`${signup.userEmail} • Signed up ${format(parseISO(signup.signedUpAt), 'MMM d, yyyy')}`}
+                      secondary={`${signup.userEmail} • Signed up ${format(parseISO(signup.createdAt), 'MMM d, yyyy')}`}
                     />
                     {signup.additionalInfo && Object.keys(signup.additionalInfo).length > 0 && (
                       <Box sx={{ mt: 0.5, ml: 0.5 }}>

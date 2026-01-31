@@ -113,7 +113,6 @@ export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
   const signup = {
     eventId,
     userId: user._id,
-    signedUpAt: new Date().toISOString(),
     additionalInfo: additionalInfo || null,
     reminder: {
       sent: false,
@@ -174,7 +173,7 @@ export const getUserSignups = async (userId) => {
     if (eventResult.success) {
       events.push({
         ...eventResult.data,
-        signedUpAt: signup.signedUpAt,
+        createdAt: signup.createdAt,
       });
     }
   }

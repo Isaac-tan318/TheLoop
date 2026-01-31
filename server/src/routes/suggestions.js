@@ -96,7 +96,7 @@ async function buildUserContext(userId, includeSignedUp) {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
   const [signups, searchHistory, viewHistory] = await Promise.all([
-    Signup.find({ userId, signedUpAt: { $gte: sixMonthsAgo } }).lean({ virtuals: true }),
+    Signup.find({ userId, createdAt: { $gte: sixMonthsAgo } }).lean({ virtuals: true }),
     SearchHistory.find({ userId }).sort({ timestamp: -1 }).limit(5).lean(),
     ViewHistory.find({ userId }).sort({ timestamp: -1 }).limit(15).lean(),
   ]);

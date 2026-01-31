@@ -215,7 +215,7 @@ function AppContent() {
       ));
       // Add full event data to userSignups for proper rendering
       if (event) {
-        setUserSignups(prev => [...prev, { ...event, signedUpAt: new Date().toISOString() }]);
+        setUserSignups(prev => [...prev, { ...event, createdAt: new Date().toISOString() }]);
       }
       refreshReminders();
     }
