@@ -13,3 +13,11 @@ export const getUserEventReview = async (eventId, userId) => {
 export const createReview = async (eventId, rating, comment) => {
   return await api.post('/reviews', { eventId, rating, comment });
 };
+
+export const updateReview = async (reviewId, rating, comment) => {
+  return await api.put(`/reviews/${reviewId}`, { rating, comment });
+};
+
+export const deleteReview = async (reviewId) => {
+  return await api.delete(`/reviews/${reviewId}`);
+};

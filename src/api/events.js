@@ -190,8 +190,8 @@ export const getUserSignupForEvent = async (eventId, userId) => {
   return { success: true, data: result.data[0] || null };
 };
 
-export const updateSignupAttendance = async (signupId, status) => {
-  return await api.patch(`/signups/${signupId}/attendance`, { status });
+export const updateSignupAttendance = async (signupId, attended) => {
+  return await api.patch(`/signups/${signupId}/attendance`, { attended });
 };
 
 // Get personalized event recommendations for the current user

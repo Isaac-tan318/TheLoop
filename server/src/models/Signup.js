@@ -5,9 +5,7 @@ const signupSchema = new mongoose.Schema(
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true, index: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     additionalInfo: { type: Map, of: String, default: () => new Map() },
-    attendanceStatus: { type: String, enum: ['present', 'absent', null], default: null },
-    attendanceMarkedAt: { type: Date },
-    attendanceMarkedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    attendedEvent: { type: Boolean, default: false },
     // Embedded reminder data
     reminder: {
       sent: { type: Boolean, default: false },

@@ -10,6 +10,7 @@ import Event from '../models/Event.js';
 import Signup from '../models/Signup.js';
 import SearchHistory from '../models/SearchHistory.js';
 import ViewHistory from '../models/ViewHistory.js';
+import Review from '../models/Review.js';
 import {
   buildUserProfileText,
   getEmbedding,
@@ -87,8 +88,9 @@ router.get('/', authenticateToken, async (req, res, next) => {
     // Check if user has enough data for personalized recommendations
     const hasInterests = context.user.interests?.length > 0;
     const hasBehaviorSignals = context.searchHistory.length > 0 || context.viewHistory.length > 0 || context.signups.length > 0;
+    const hasReviewData = context.reviewInsights?.positiveTopicsList?.length > 0 || context.reviewInsights?.negativeTopicsList?.length > 0;
     const hasGeminiKey = process.env.GEMINI_API_KEY?.trim().length > 0;
-    const canUseVectorSearch = hasGeminiKey && (hasInterests || hasBehaviorSignals);
+    const canUseVectorSearch = hasGeminiKey && (hasInterests || hasBehaviorSignals || hasReviewData);
 
     let vectorResults = [];
     let recommendationType = 'popular';
@@ -96,7 +98,10 @@ router.get('/', authenticateToken, async (req, res, next) => {
     // Use vector search if user has enough data
     if (canUseVectorSearch) {
       try {
-        const userProfileText = buildUserProfileText(context.enhancedUser);
+        const userProfileText = buildUserProfileText(context.enhancedUser, {
+          positiveReviewTopics: context.reviewInsights?.positiveTopicsList || [],
+          negativeReviewTopics: context.reviewInsights?.negativeTopicsList || [],
+        });
         const userEmbedding = await getEmbedding(userProfileText);
 
         // Run Vector Search Pipeline
@@ -186,10 +191,11 @@ async function buildUserContext(userId, includeSignedUp) {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const [signups, searchHistory, viewHistory] = await Promise.all([
+  const [signups, searchHistory, viewHistory, reviews] = await Promise.all([
     Signup.find({ userId, createdAt: { $gte: sixMonthsAgo } }).lean({ virtuals: true }),
     SearchHistory.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
     ViewHistory.find({ userId }).sort({ createdAt: -1 }).limit(15).populate('eventId', 'title').lean(),
+    Review.find({ userId }).populate('eventId', 'interests title').lean(),
   ]);
 
   const signedUpEventIds = new Set(
@@ -198,6 +204,9 @@ async function buildUserContext(userId, includeSignedUp) {
 
   const { weights: signupInterestWeights, orderedList: pastSignupInterests } = 
     await buildSignupInterestInsights(Array.from(signedUpEventIds));
+
+  // Build review insights - extract topics from positive and negative reviews
+  const reviewInsights = buildReviewInsights(reviews);
 
   const enhancedUser = {
     ...user,
@@ -216,6 +225,39 @@ async function buildUserContext(userId, includeSignedUp) {
     searchHistory,
     viewHistory,
     signupInterestWeights,
+    reviewInsights,
+  };
+}
+
+// Build insights from user reviews - extract positive and negative topic weights
+function buildReviewInsights(reviews) {
+  const positiveTopics = new Map(); // topics from 4-5 star reviews
+  const negativeTopics = new Map(); // topics from 1-2 star reviews
+
+  for (const review of reviews) {
+    const interests = review.eventId?.interests || [];
+    if (!interests.length) continue;
+
+    if (review.rating >= 4) {
+      // Positive review - weight by rating (4 = 0.8, 5 = 1.0)
+      const weight = review.rating / 5;
+      for (const interest of interests) {
+        positiveTopics.set(interest, Math.max(positiveTopics.get(interest) || 0, weight));
+      }
+    } else if (review.rating <= 2) {
+      // Negative review - weight by how bad (1 = 1.0, 2 = 0.5)
+      const weight = (3 - review.rating) / 2;
+      for (const interest of interests) {
+        negativeTopics.set(interest, Math.max(negativeTopics.get(interest) || 0, weight));
+      }
+    }
+  }
+
+  return {
+    positiveTopics: Object.fromEntries(positiveTopics),
+    negativeTopics: Object.fromEntries(negativeTopics),
+    positiveTopicsList: [...positiveTopics.keys()],
+    negativeTopicsList: [...negativeTopics.keys()],
   };
 }
 

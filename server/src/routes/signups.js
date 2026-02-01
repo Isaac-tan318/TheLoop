@@ -326,9 +326,9 @@ router.patch('/:id', authenticateToken, async (req, res, next) => {
 // Mark attendance (organiser only)
 router.patch('/:id/attendance', authenticateToken, requireOrganiser, async (req, res, next) => {
   try {
-    const { status } = req.body;
-    if (!['present', 'absent', null].includes(status)) {
-      return res.status(400).json({ message: 'Invalid attendance status' });
+    const { attended } = req.body;
+    if (typeof attended !== 'boolean') {
+      return res.status(400).json({ message: 'attended must be a boolean' });
     }
 
     const signup = await Signup.findById(req.params.id).lean();
@@ -343,14 +343,20 @@ router.patch('/:id/attendance', authenticateToken, requireOrganiser, async (req,
     const updated = await Signup.findByIdAndUpdate(
       req.params.id,
       {
-        attendanceStatus: status,
-        attendanceMarkedAt: status ? new Date() : null,
-        attendanceMarkedBy: status ? req.user._id : null,
+        attendedEvent: attended,
       },
       { new: true, runValidators: true }
-    ).lean();
+    ).populate('userId', 'name email').lean();
 
-    res.json(updated);
+    // Map user data to userName/userEmail for frontend compatibility
+    const result = {
+      ...updated,
+      userName: updated.userId?.name || 'Unknown User',
+      userEmail: updated.userId?.email || '',
+      userId: updated.userId?._id || updated.userId,
+    };
+
+    res.json(result);
   } catch (err) {
     next(err);
   }

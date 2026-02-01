@@ -64,6 +64,7 @@ const HomePage = ({ eventsProps }) => {
         const start = parseISO(event.startDate);
         return isAfter(start, now) && isBefore(start, oneWeekFromNow);
       })
+      .sort((a, b) => parseISO(a.startDate) - parseISO(b.startDate))
       .slice(0, 6);
   }, [events]);
 

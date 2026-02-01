@@ -77,6 +77,9 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   const [updatingAttendanceId, setUpdatingAttendanceId] = useState(null);
   const [eventReviews, setEventReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [editingReview, setEditingReview] = useState(false);
+  const [deletingReview, setDeletingReview] = useState(false);
+  const [confirmDeleteReviewOpen, setConfirmDeleteReviewOpen] = useState(false);
 
   const isOrganiser = user?._id === event?.organiserId;
   const isPast = (() => {
@@ -360,15 +363,15 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     setTogglingSignups(false);
   };
 
-  const handleMarkAttendance = async (signupId, status) => {
+  const handleMarkAttendance = async (signupId, attended) => {
     setUpdatingAttendanceId(signupId);
-    const result = await eventsApi.updateSignupAttendance(signupId, status);
+    const result = await eventsApi.updateSignupAttendance(signupId, attended);
     if (result.success) {
       setSignups(prev => prev.map(s => (s._id === signupId ? result.data : s)));
       if (userSignup?._id === signupId) {
         setUserSignup(result.data);
       }
-      notify(`Marked as ${status}`, 'success');
+      notify(attended ? 'Marked as present' : 'Marked as absent', 'success');
     } else {
       notify(result.error || 'Failed to update attendance', 'error');
     }
@@ -381,14 +384,56 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       return;
     }
     setSubmittingReview(true);
-    const result = await reviewsApi.createReview(eventId, reviewRating, reviewComment);
-    if (result.success) {
-      setExistingReview(result.data);
-      notify('Review submitted', 'success');
+    
+    if (editingReview && existingReview) {
+      // Update existing review
+      const result = await reviewsApi.updateReview(existingReview._id, reviewRating, reviewComment);
+      if (result.success) {
+        setExistingReview(result.data);
+        setEditingReview(false);
+        notify('Review updated', 'success');
+      } else {
+        notify(result.error || 'Failed to update review', 'error');
+      }
     } else {
-      notify(result.error || 'Failed to submit review', 'error');
+      // Create new review
+      const result = await reviewsApi.createReview(eventId, reviewRating, reviewComment);
+      if (result.success) {
+        setExistingReview(result.data);
+        notify('Review submitted', 'success');
+      } else {
+        notify(result.error || 'Failed to submit review', 'error');
+      }
     }
     setSubmittingReview(false);
+  };
+
+  const handleStartEditReview = () => {
+    setReviewRating(existingReview?.rating || 0);
+    setReviewComment(existingReview?.comment || '');
+    setEditingReview(true);
+  };
+
+  const handleCancelEditReview = () => {
+    setEditingReview(false);
+    setReviewRating(0);
+    setReviewComment('');
+  };
+
+  const handleDeleteReview = async () => {
+    if (!existingReview) return;
+    setDeletingReview(true);
+    const result = await reviewsApi.deleteReview(existingReview._id);
+    if (result.success) {
+      setExistingReview(null);
+      setReviewRating(0);
+      setReviewComment('');
+      setConfirmDeleteReviewOpen(false);
+      notify('Review deleted', 'success');
+    } else {
+      notify(result.error || 'Failed to delete review', 'error');
+    }
+    setDeletingReview(false);
   };
 
   const shouldClearSearch = Boolean(location.state?.clearSearchOnBack);
@@ -677,13 +722,11 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
             <Typography color="textSecondary">
               Reviews open once the event has started.
             </Typography>
-          ) : userSignup?.attendanceStatus !== 'present' ? (
+          ) : !userSignup?.attendedEvent ? (
             <Typography color="textSecondary">
-              {userSignup?.attendanceStatus === 'absent'
-                ? 'You were marked absent, so you cannot review this event.'
-                : 'Your attendance has not been marked yet. You can review once marked present.'}
+              You were marked absent, so you cannot review this event.
             </Typography>
-          ) : existingReview ? (
+          ) : existingReview && !editingReview ? (
             <Paper elevation={1} sx={{ p: 2, borderRadius: 2, backgroundColor: '#f9fafb' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Rating value={existingReview.rating || 0} readOnly />
@@ -691,9 +734,26 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                   {existingReview.rating}/5
                 </Typography>
               </Box>
-              <Typography sx={{ color: '#374151' }}>
+              <Typography sx={{ color: '#374151', mb: 2 }}>
                 {existingReview.comment || 'No comment provided.'}
               </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleStartEditReview}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => setConfirmDeleteReviewOpen(true)}
+                >
+                  Delete
+                </Button>
+              </Box>
             </Paper>
           ) : (
             <Paper elevation={1} sx={{ p: 2, borderRadius: 2 }}>
@@ -713,14 +773,22 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                   onChange={(e) => setReviewComment(e.target.value)}
                   inputProps={{ maxLength: 2000 }}
                 />
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  {editingReview && (
+                    <Button
+                      variant="outlined"
+                      onClick={handleCancelEditReview}
+                    >
+                      Cancel
+                    </Button>
+                  )}
                   <Button
                     variant="contained"
                     onClick={handleSubmitReview}
                     disabled={submittingReview}
                     sx={{ backgroundColor: '#dc2626', '&:hover': { backgroundColor: '#b91c1c' } }}
                   >
-                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    {submittingReview ? (editingReview ? 'Updating...' : 'Submitting...') : (editingReview ? 'Update Review' : 'Submit Review')}
                   </Button>
                 </Box>
               </Box>
@@ -880,6 +948,22 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         </DialogActions>
       </Dialog>
 
+      <Dialog open={confirmDeleteReviewOpen} onClose={() => setConfirmDeleteReviewOpen(false)}>
+        <DialogTitle>Delete Review?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete your review? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteReviewOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteReview} color="error" variant="contained" disabled={deletingReview}
+            startIcon={deletingReview ? <CircularProgress size={18} sx={{ color: 'white' }} /> : undefined}>
+            {deletingReview ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       
       <Dialog
         open={showSignups}
@@ -923,15 +1007,15 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                     {isOrganiser && (
                       <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Chip
-                          label={signup.attendanceStatus ? `Attendance: ${signup.attendanceStatus}` : 'Attendance: not marked'}
+                          label={signup.attendedEvent ? 'Attended' : 'Did not attend'}
                           size="small"
-                          color={signup.attendanceStatus === 'present' ? 'success' : signup.attendanceStatus === 'absent' ? 'error' : 'default'}
+                          color={signup.attendedEvent ? 'success' : 'error'}
                           variant="outlined"
                         />
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => handleMarkAttendance(signup._id, 'present')}
+                          onClick={() => handleMarkAttendance(signup._id, true)}
                           disabled={updatingAttendanceId === signup._id}
                         >
                           Mark Present
@@ -939,7 +1023,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => handleMarkAttendance(signup._id, 'absent')}
+                          onClick={() => handleMarkAttendance(signup._id, false)}
                           disabled={updatingAttendanceId === signup._id}
                         >
                           Mark Absent

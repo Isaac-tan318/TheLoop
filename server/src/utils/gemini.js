@@ -41,63 +41,10 @@ export async function getEmbedding(text) {
   return data.embedding.values;
 }
 
-// Get embeddings for multiple texts in batch
-// Actual calling of gemini API
- 
-export async function getBatchEmbeddings(texts) {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY environment variable is required');
-  }
-
-  const response = await fetch(
-    `${API_BASE}/models/${EMBEDDING_MODEL}:batchEmbedContents?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: texts.map((text) => ({
-          model: `models/${EMBEDDING_MODEL}`,
-          content: { parts: [{ text }] },
-        })),
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  return data.embeddings.map((e) => e.values);
-}
-
-
- // Calculate cosine similarity between two vectors
-
-export function cosineSimilarity(a, b) {
-  if (a.length !== b.length) {
-    throw new Error('Vectors must have same length');
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator === 0 ? 0 : dotProduct / denominator;
-}
-
 
 // Build a text representation of a user's profile for embedding
 
-export function buildUserProfileText(user) {
+export function buildUserProfileText(user, options = {}) {
   const parts = [];
   
   if (user.interests?.length) {
@@ -112,6 +59,13 @@ export function buildUserProfileText(user) {
     const uniqueSignupTopics = [...new Set(user.pastSignupInterests)].slice(0, 5);
     parts.push(`Recently signed up for events about: ${uniqueSignupTopics.join(', ')}`);
   }
+
+  // Add topics from highly rated events (4-5 stars)
+  if (options.positiveReviewTopics?.length) {
+    parts.push(`User highly enjoyed: ${options.positiveReviewTopics.join(', ')}`);
+  }
+
+  
 
   // Add recent search history (last 5 queries)
 
@@ -162,39 +116,8 @@ export function buildEventText(event) {
   return parts.join('. ') || 'Event';
 }
 
-// Rank events by similarity to user profile
-
-export async function rankEventsByUserProfile(user, events, topN = 10) {
-  if (!events.length) return [];
-
-  // Build text representations
-  const userText = buildUserProfileText(user);
-  const eventTexts = events.map(buildEventText);
-
-  // Get embeddings (user + all events in one batch for efficiency)
-  const allTexts = [userText, ...eventTexts];
-
-  const embeddings = await getBatchEmbeddings(allTexts);
-
-  const userEmbedding = embeddings[0];
-  const eventEmbeddings = embeddings.slice(1);
-
-  // Calculate similarity scores
-  const scoredEvents = events.map((event, i) => ({
-    ...event,
-    similarityScore: cosineSimilarity(userEmbedding, eventEmbeddings[i]),
-  }));
-
-  // Sort by similarity (highest first) and return top N
-  scoredEvents.sort((a, b) => b.similarityScore - a.similarityScore);
-  return scoredEvents.slice(0, topN);
-}
-
 export default {
   getEmbedding,
-  getBatchEmbeddings,
-  cosineSimilarity,
   buildUserProfileText,
   buildEventText,
-  rankEventsByUserProfile,
 };
