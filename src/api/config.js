@@ -66,7 +66,8 @@ export const apiRequest = async (endpoint, options = {}) => {
     if (!response.ok) {
       return { 
         success: false, 
-        error: data?.message || data?.error || 'An error occurred' 
+        error: data?.message || data?.error || 'An error occurred',
+        code: data?.code || null  // Pass through error codes from server
       };
     }
 

@@ -174,11 +174,6 @@ export async function rankEventsByUserProfile(user, events, topN = 10) {
   // Get embeddings (user + all events in one batch for efficiency)
   const allTexts = [userText, ...eventTexts];
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[Gemini] User profile text:', userText);
-    console.log('[Gemini] Event texts sample:', eventTexts.slice(0, 3));
-  }
-
   const embeddings = await getBatchEmbeddings(allTexts);
 
   const userEmbedding = embeddings[0];

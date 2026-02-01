@@ -26,6 +26,32 @@ async function pruneHistory(Model, userId) {
   }
 }
 
+/**
+ * @swagger
+ * /api/analytics/search:
+ *   post:
+ *     summary: Record a search query for recommendations
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - query
+ *             properties:
+ *               query:
+ *                 type: string
+ *                 description: The search query
+ *     responses:
+ *       200:
+ *         description: Search recorded successfully
+ *       400:
+ *         description: Search query is required
+ */
 // POST /api/analytics/search
 // Record a search query for the authenticated user
 // Body: { query: string }
@@ -51,6 +77,34 @@ router.post('/search', authenticateToken, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/analytics/view:
+ *   post:
+ *     summary: Record an event view for recommendations
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - eventId
+ *             properties:
+ *               eventId:
+ *                 type: string
+ *                 description: The event ID that was viewed
+ *     responses:
+ *       200:
+ *         description: View recorded successfully
+ *       400:
+ *         description: Event ID is required
+ *       404:
+ *         description: Event not found
+ */
 // POST /api/analytics/view
 // Record an event view/click for the authenticated user
 // Body: { eventId: string }
@@ -82,6 +136,47 @@ router.post('/view', authenticateToken, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/analytics/history:
+ *   get:
+ *     summary: Get user's search and view history
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's history
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 searchHistory:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       query:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ *                 viewHistory:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       eventId:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ */
 // GET /api/analytics/history
 // Get the authenticated user's search and view history
 router.get('/history', authenticateToken, async (req, res, next) => {
@@ -107,6 +202,18 @@ router.get('/history', authenticateToken, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/analytics/history:
+ *   delete:
+ *     summary: Clear user's search and view history
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: History cleared successfully
+ */
 // DELETE /api/analytics/history
 // Clear the authenticated user's search and view history
 router.delete('/history', authenticateToken, async (req, res, next) => {

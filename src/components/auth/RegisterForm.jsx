@@ -136,7 +136,7 @@ const RegisterForm = () => {
       if (result.data.role === 'organiser') {
         navigate('/organiser/dashboard');
       } else {
-        navigate('/events');
+        navigate('/');
       }
     }
   };

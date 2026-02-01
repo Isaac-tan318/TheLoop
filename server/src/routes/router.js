@@ -5,6 +5,7 @@ import suggestionsRoutes from './suggestions.js';
 import eventsRoutes from './events.js';
 import usersRoutes from './users.js';
 import signupsRoutes from './signups.js';
+import reviewsRoutes from './reviews.js';
 
 const router = express.Router();
 
@@ -25,5 +26,8 @@ router.use('/users', usersRoutes);
 
 // SIGNUPS (fully protected)
 router.use('/signups', signupsRoutes);
+
+// REVIEWS (public reads, protected writes)
+router.use('/reviews', reviewsRoutes);
 
 export default router;

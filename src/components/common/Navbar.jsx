@@ -182,7 +182,7 @@ const Navbar = ({ reminders = [] }) => {
                   </Typography>
                 </MenuItem>
                 <MenuItem onClick={handleProfile}>Profile</MenuItem>
-                <MenuItem onClick={handleMyEvents}>Attending Events</MenuItem>
+                <MenuItem onClick={handleMyEvents}>My Events</MenuItem>
                 {user?.role === 'organiser' && (
                   <MenuItem onClick={() => { handleMenuClose(); navigate('/organiser/dashboard'); }}>
                     Organiser Dashboard

@@ -121,11 +121,14 @@ export const signUpForEvent = async (eventId, user, additionalInfo = null) => {
   
   const result = await api.post('/signups', signup);
   
-  // Update event signup count
-  if (result.success) {
-    await api.patch(`/events/${eventId}`, {
-      signupCount: (event.signupCount || 0) + 1
-    });
+  // Handle the case where server returns MISSING_REQUIRED_FIELDS (event was edited to add fields)
+  if (!result.success && result.code === 'MISSING_REQUIRED_FIELDS') {
+    return { 
+      success: false, 
+      error: result.error,
+      code: 'MISSING_REQUIRED_FIELDS',
+      requiresRefresh: true  // Signal to frontend to refresh and show the form
+    };
   }
   
   return result;
@@ -141,20 +144,8 @@ export const cancelSignup = async (eventId, userId) => {
   }
   
   const signup = signupsResult.data[0];
-  // Deleting signup also removes embedded reminder
-  const result = await api.delete(`/signups/${signup._id}`);
-  
-  // Update event signup count
-  if (result.success) {
-    const eventResult = await api.get(`/events/${eventId}`);
-    if (eventResult.success) {
-      await api.patch(`/events/${eventId}`, {
-        signupCount: Math.max((eventResult.data.signupCount || 1) - 1, 0)
-      });
-    }
-  }
-  
-  return result;
+  // Deleting signup also removes embedded reminder (server handles signupCount)
+  return api.delete(`/signups/${signup._id}`);
 };
 
  
@@ -191,6 +182,16 @@ export const isUserSignedUp = async (eventId, userId) => {
  
 export const getEventSignups = async (eventId, organiserId) => {
   return await api.get(`/signups?eventId=${eventId}`);
+};
+
+export const getUserSignupForEvent = async (eventId, userId) => {
+  const result = await api.get(`/signups?eventId=${eventId}&userId=${userId}`);
+  if (!result.success) return result;
+  return { success: true, data: result.data[0] || null };
+};
+
+export const updateSignupAttendance = async (signupId, status) => {
+  return await api.patch(`/signups/${signupId}/attendance`, { status });
 };
 
 // Get personalized event recommendations for the current user

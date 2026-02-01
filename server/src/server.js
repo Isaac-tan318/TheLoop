@@ -14,6 +14,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Swagger UI - dynamic import to catch any errors
+try {
+  const { swaggerUi, specs } = await import('./swagger.js');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'TheLoop API Documentation',
+  }));
+  console.log('Swagger UI available at /api-docs');
+} catch (err) {
+  console.error('Failed to load Swagger:', err);
+}
+
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
 });

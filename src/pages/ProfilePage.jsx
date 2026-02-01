@@ -6,76 +6,34 @@ import {
   Box,
   Typography,
   Paper,
-  TextField,
-  Button,
   Alert,
-  Divider,
   Avatar,
-  Grid,
-  Snackbar,
 } from '@mui/material';
-import { Check as CheckIcon } from '@mui/icons-material';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import InterestTags from '../components/common/InterestTags';
-import { profileSchema, validateForm } from '../utils/validation';
 
 const ProfilePage = () => {
-  const { user, updateProfile, loading } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { notify } = useUI();
   
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     interests: user?.interests || [],
   });
-  const [profileErrors, setProfileErrors] = useState({});
-  const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
-  const [justSaved, setJustSaved] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
-    setProfileErrors(prev => ({ ...prev, [name]: null }));
-    setProfileSuccess('');
-    setProfileError('');
-    setJustSaved(false);
-  };
-
-  const handleInterestsChange = (interests) => {
+  const handleInterestsChange = async (interests) => {
     setProfileData(prev => ({ ...prev, interests }));
-    setProfileSuccess('');
     setProfileError('');
-    setJustSaved(false);
-  };
 
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    console.log('1. Submit started');
-    
-    const validation = validateForm(profileSchema, profileData);
-    console.log('2. Validation result:', validation);
-    if (!validation.success) {
-      console.log('STOP: Validation failed', validation.errors);
-      setProfileErrors(validation.errors);
-      setSnackbarOpen(false);
-      return;
-    }
-
+    // Auto-save interests
     try {
-      console.log('3. Calling updateProfile...');
-      await updateProfile(profileData);
-      console.log('4. updateProfile finished successfully');
-      setProfileSuccess('Changes saved successfully!');
-      setProfileError('');
-      setJustSaved(true);
-      console.log('5. Trigger global Snackbar');
-      notify('Changes saved successfully!', 'success');
+      await updateProfile({ ...profileData, interests });
+      notify('Interests updated', 'success');
     } catch (error) {
       console.error('ERROR in updateProfile:', error);
-      setProfileError('Failed to update profile.');
+      setProfileError('Failed to update interests.');
     }
   };
 
@@ -122,32 +80,16 @@ const ProfilePage = () => {
           </Box>
 
           <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            Edit Profile
+            Your Interests
           </Typography>
 
-          {profileSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {profileSuccess}
-            </Alert>
-          )}
           {profileError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {profileError}
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleProfileSubmit}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              name="name"
-              value={profileData.name}
-              onChange={handleProfileChange}
-              error={!!profileErrors.name}
-              helperText={profileErrors.name}
-              sx={{ mb: 3 }}
-            />
-
+          <Box>
             <Box sx={{ mb: 3 }}>
               <InterestTags
                 selected={profileData.interests}
@@ -162,25 +104,6 @@ const ProfilePage = () => {
                   : 'These will be your default interests for events you create'}
               </Typography>
             </Box>
-
-            
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-              startIcon={justSaved ? <CheckIcon /> : undefined}
-              sx={{
-                backgroundColor: justSaved ? '#16a34a' : '#dc2626',
-                '&:hover': { backgroundColor: justSaved ? '#15803d' : '#b91c1c' },
-              }}
-            >
-              {loading
-                ? 'Saving...'
-                : justSaved
-                ? 'Changes saved successfully'
-                : 'Save Changes'}
-            </Button>
           </Box>
         </Paper>
 

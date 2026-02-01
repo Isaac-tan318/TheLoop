@@ -18,6 +18,13 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+
+// Generate a valid 24-character hex ObjectId
+const generateObjectId = () => {
+  const timestamp = Math.floor(Date.now() / 1000).toString(16).padStart(8, '0');
+  const random = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  return timestamp + random;
+};
 import { useNavigate } from 'react-router-dom';
 import { eventSchema, validateForm } from '../../utils/validation';
 import InterestTags from '../common/InterestTags';
@@ -97,7 +104,7 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
       ...prev,
       additionalFields: [
         ...prev.additionalFields,
-        { _id: Date.now().toString(), label: '', type: 'text', required: false, options: '' },
+        { _id: generateObjectId(), label: '', type: 'text', required: false, options: '' },
       ],
     }));
   };
@@ -181,6 +188,12 @@ const EventForm = ({ event = null, onSuccess, createEvent, updateEvent, interest
       }
       if (!formData.interests || formData.interests.length === 0) {
         setErrors({ interests: 'Please select at least one interest' });
+        setSubmitError('Please fix the highlighted fields before submitting.');
+        return;
+      }
+      // Validate that start date is before end date
+      if (new Date(formData.startDate) > new Date(formData.endDate)) {
+        setErrors({ startDate: 'Start date must be before end date' });
         setSubmitError('Please fix the highlighted fields before submitting.');
         return;
       }

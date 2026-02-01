@@ -87,19 +87,29 @@ const EventCard = ({ event, showSignupButton = true, signUpForEvent, cancelSignu
     }
 
     if (Array.isArray(event.additionalFields) && event.additionalFields.length > 0) {
-      // Fetch fresh event data to check if signups are still open before navigating
+      // Fetch fresh event data to check if signups are still open and if additional fields still exist
       const freshResult = await eventsApi.getEventById(event._id);
       if (!freshResult.success || freshResult.data.signupsOpen === false) {
         alert('Signups are currently closed for this event.');
         return;
       }
-      navigate(`/events/${event._id}`, { state: { openSignup: true } });
-      return;
+      
+      // Check if the event still has additional fields (it may have been edited)
+      const freshEvent = freshResult.data;
+      if (Array.isArray(freshEvent.additionalFields) && freshEvent.additionalFields.length > 0) {
+        // Event still has additional fields, navigate to details page
+        navigate(`/events/${event._id}`, { state: { openSignup: true } });
+        return;
+      }
+      // Event no longer has additional fields, allow direct signup
     }
 
     const result = await signUpForEvent(event._id);
     if (result.success) {
       setUserSignedUp(true);
+    } else if (result.requiresRefresh) {
+      // Event was edited to add required fields - navigate to detail page to fill them
+      navigate(`/events/${event._id}`, { state: { openSignup: true } });
     } else {
       alert(result.error);
     }

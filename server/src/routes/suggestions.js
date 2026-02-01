@@ -18,6 +18,57 @@ import {
 const router = express.Router();
 
 
+/**
+ * @swagger
+ * /api/suggestions:
+ *   get:
+ *     summary: Get personalized event recommendations
+ *     description: Returns AI-powered event suggestions based on user interests, search history, and view history. Falls back to popular events if user has no activity.
+ *     tags: [Suggestions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Maximum number of recommendations to return
+ *       - in: query
+ *         name: includeSignedUp
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Include events the user has already signed up for
+ *     responses:
+ *       200:
+ *         description: List of recommended events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 events:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Event'
+ *                       - type: object
+ *                         properties:
+ *                           similarityScore:
+ *                             type: number
+ *                             description: Match score (0-1)
+ *                           isSignedUp:
+ *                             type: boolean
+ *                 recommendationType:
+ *                   type: string
+ *                   enum: [personalized, personalized_vector, popular]
+ *                   description: Type of recommendations returned
+ *       404:
+ *         description: User not found
+ */
 //  GET /api/suggestions
 //  Returns personalized event suggestions for the authenticated user
  
@@ -78,6 +129,7 @@ router.get('/', authenticateToken, async (req, res, next) => {
               signupCount: 1,
               signupsOpen: 1,
               imageUrl: 1,
+              additionalFields: 1,
               similarityScore: { $meta: 'vectorSearchScore' }
             }
           }
@@ -236,8 +288,11 @@ function applyBoosts(rankedEvents, context) {
       for (const search of searchHistory) {
         const query = (search.query || '').toLowerCase();
         if (query && eventText.includes(query)) {
-          const daysSinceSearch = (Date.now() - new Date(search.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-          boost += 0.05 * Math.exp(-0.1 * daysSinceSearch);
+          const searchDate = new Date(search.createdAt);
+          if (!isNaN(searchDate.getTime())) {
+            const daysSinceSearch = (Date.now() - searchDate.getTime()) / (1000 * 60 * 60 * 24);
+            boost += 0.05 * Math.exp(-0.1 * daysSinceSearch);
+          }
           break; // Only apply once per event
         }
       }
@@ -247,10 +302,13 @@ function applyBoosts(rankedEvents, context) {
     // If user recently viewed this event, apply exponential decay boost
     if (viewHistory.length > 0) {
       for (const view of viewHistory) {
-        const viewedEventId = view.eventId?.toString?.() || String(view.eventId);
+        const viewedEventId = view.eventId?._id?.toString?.() || view.eventId?.toString?.() || String(view.eventId);
         if (viewedEventId === eventId) {
-          const daysSinceView = (Date.now() - new Date(view.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-          boost += 0.03 * Math.exp(-0.1 * daysSinceView);
+          const viewDate = new Date(view.createdAt);
+          if (!isNaN(viewDate.getTime())) {
+            const daysSinceView = (Date.now() - viewDate.getTime()) / (1000 * 60 * 60 * 24);
+            boost += 0.03 * Math.exp(-0.1 * daysSinceView);
+          }
           break; // Only apply once per event
         }
       }

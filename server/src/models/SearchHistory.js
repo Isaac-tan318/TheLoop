@@ -8,7 +8,7 @@ const searchHistorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// TTL index to auto delete 30 days after createdAt
-searchHistorySchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+// TTL index to auto delete 6 months after createdAt
+searchHistorySchema.index({ createdAt: 1 }, { expireAfterSeconds: 6 * 30 * 24 * 60 * 60 });
 
 export default mongoose.model('SearchHistory', searchHistorySchema);

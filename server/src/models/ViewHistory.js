@@ -8,7 +8,7 @@ const viewHistorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// TTL index to auto delete 30 days after createdAt
-viewHistorySchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+// TTL index to auto delete 6 months after createdAt
+viewHistorySchema.index({ createdAt: 1 }, { expireAfterSeconds: 6 * 30 * 24 * 60 * 60 });
 
 export default mongoose.model('ViewHistory', viewHistorySchema);

@@ -26,6 +26,7 @@ import {
   CircularProgress,
   Switch,
   FormControlLabel,
+  Rating,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -46,6 +47,7 @@ import { format, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import * as eventsApi from '../../api/events';
+import * as reviewsApi from '../../api/reviews';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, deleteEvent, loading, updateFilters }) => {
@@ -67,6 +69,14 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingSignups, setTogglingSignups] = useState(false);
+  const [userSignup, setUserSignup] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+  const [updatingAttendanceId, setUpdatingAttendanceId] = useState(null);
+  const [eventReviews, setEventReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const isOrganiser = user?._id === event?.organiserId;
   const isPast = (() => {
@@ -76,6 +86,16 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       return false;
     }
   })();
+
+  const hasEventStarted = (() => {
+    try {
+      if (!event) return false;
+      return new Date(event.startDate) <= new Date();
+    } catch {
+      return false;
+    }
+  })();
+
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -88,6 +108,24 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         if (user && isSignedUp) {
           const signedUp = await isSignedUp(eventId);
           setUserSignedUp(signedUp);
+
+          if (signedUp) {
+            const signupResult = await eventsApi.getUserSignupForEvent(eventId, user._id);
+            if (signupResult.success) {
+              setUserSignup(signupResult.data);
+            }
+
+            const reviewResult = await reviewsApi.getUserEventReview(eventId, user._id);
+            if (reviewResult.success) {
+              setExistingReview(reviewResult.data);
+              if (reviewResult.data?.rating) {
+                setReviewRating(reviewResult.data.rating);
+              }
+              if (reviewResult.data?.comment) {
+                setReviewComment(reviewResult.data.comment);
+              }
+            }
+          }
         }
         
         
@@ -96,6 +134,14 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
           if (signupsResult.success) {
             setSignups(signupsResult.data);
           }
+
+          // Fetch all reviews for the event
+          setLoadingReviews(true);
+          const reviewsResult = await reviewsApi.getEventReviews(eventId);
+          if (reviewsResult.success) {
+            setEventReviews(reviewsResult.data);
+          }
+          setLoadingReviews(false);
         }
 
         
@@ -135,27 +181,62 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       return;
     }
 
-    if (event?.signupsOpen === false) {
-      alert('Signups are currently closed for this event.');
+    // Fetch fresh event data to get latest signupsOpen status and additionalFields
+    try {
+      const freshResult = await eventsApi.getEventById(eventId);
+      if (!freshResult.success) {
+        alert('Failed to load event. Please try again.');
+        return;
+      }
+      const freshEvent = freshResult.data;
+      setEvent(freshEvent); // Update local state with fresh data
+
+      if (freshEvent.signupsOpen === false) {
+        alert('Signups are currently closed for this event.');
+        return;
+      }
+
+      if (freshEvent.additionalFields && freshEvent.additionalFields.length > 0) {
+        const init = {};
+        freshEvent.additionalFields.forEach(f => { init[f._id] = ''; });
+        setSignupAnswers(init);
+        setSignupErrors({});
+        setSignupFormOpen(true);
+        return;
+      }
+    } catch {
+      alert('Failed to load event. Please try again.');
       return;
     }
 
-    if (event?.additionalFields && event.additionalFields.length > 0) {
-      const init = {};
-      event.additionalFields.forEach(f => { init[f._id] = ''; });
-      setSignupAnswers(init);
-      setSignupErrors({});
-      setSignupFormOpen(true);
-      return;
-    }
-
+    console.log('Calling signUpForEvent directly (no additional fields)');
     const result = await signUpForEvent(eventId);
+    console.log('signUpForEvent result:', result);
     if (result.success) {
       setUserSignedUp(true);
       setEvent(prev => ({
         ...prev,
         signupCount: (prev.signupCount || 0) + 1,
       }));
+      if (user) {
+        const signupResult = await eventsApi.getUserSignupForEvent(eventId, user._id);
+        if (signupResult.success) {
+          setUserSignup(signupResult.data);
+        }
+      }
+    } else if (result.requiresRefresh) {
+      // Event was edited to add required fields - refresh event data and show the form
+      const refreshedResult = await eventsApi.getEventById(eventId);
+      if (refreshedResult.success && refreshedResult.data.additionalFields?.length > 0) {
+        setEvent(refreshedResult.data);
+        const init = {};
+        refreshedResult.data.additionalFields.forEach(f => { init[f._id] = ''; });
+        setSignupAnswers(init);
+        setSignupErrors({});
+        setSignupFormOpen(true);
+      } else {
+        alert('Unable to load signup form. Please refresh the page and try again.');
+      }
     } else {
       alert(result.error);
     }
@@ -223,6 +304,12 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         signupCount: (prev.signupCount || 0) + 1,
       }));
       setSignupFormOpen(false);
+      if (user) {
+        const signupResult = await eventsApi.getUserSignupForEvent(eventId, user._id);
+        if (signupResult.success) {
+          setUserSignup(signupResult.data);
+        }
+      }
     } else {
       alert(result.error);
     }
@@ -233,6 +320,8 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     const result = await cancelSignup(eventId);
     if (result.success) {
       setUserSignedUp(false);
+      setUserSignup(null);
+      setExistingReview(null);
       setEvent(prev => ({
         ...prev,
         signupCount: Math.max((prev.signupCount || 1) - 1, 0),
@@ -271,6 +360,37 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     setTogglingSignups(false);
   };
 
+  const handleMarkAttendance = async (signupId, status) => {
+    setUpdatingAttendanceId(signupId);
+    const result = await eventsApi.updateSignupAttendance(signupId, status);
+    if (result.success) {
+      setSignups(prev => prev.map(s => (s._id === signupId ? result.data : s)));
+      if (userSignup?._id === signupId) {
+        setUserSignup(result.data);
+      }
+      notify(`Marked as ${status}`, 'success');
+    } else {
+      notify(result.error || 'Failed to update attendance', 'error');
+    }
+    setUpdatingAttendanceId(null);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewRating || reviewRating < 1) {
+      notify('Please select a rating', 'error');
+      return;
+    }
+    setSubmittingReview(true);
+    const result = await reviewsApi.createReview(eventId, reviewRating, reviewComment);
+    if (result.success) {
+      setExistingReview(result.data);
+      notify('Review submitted', 'success');
+    } else {
+      notify(result.error || 'Failed to submit review', 'error');
+    }
+    setSubmittingReview(false);
+  };
+
   const shouldClearSearch = Boolean(location.state?.clearSearchOnBack);
 
   useEffect(() => {
@@ -285,7 +405,8 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     if (shouldClearSearch && updateFilters) {
       updateFilters({ searchQuery: '' });
     }
-    if (location?.state?.from) {
+    // Always try to go back in history first, fallback to /events only if no history
+    if (window.history.length > 1) {
       navigate(-1);
     } else {
       navigate('/events');
@@ -301,7 +422,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       <Box sx={{ textAlign: 'center', py: 8 }}>
         <Typography variant="h5">Event not found</Typography>
         <Button
-          onClick={() => navigate('/events')}
+          onClick={handleBack}
           sx={{ mt: 2, color: '#dc2626' }}
         >
           Back to Events
@@ -545,6 +666,113 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         {event.description}
       </Typography>
 
+      {!isOrganiser && userSignedUp && (
+        <Box sx={{ mt: 4 }}>
+          <Divider sx={{ mb: 3 }} />
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Your Review
+          </Typography>
+
+          {!hasEventStarted ? (
+            <Typography color="textSecondary">
+              Reviews open once the event has started.
+            </Typography>
+          ) : userSignup?.attendanceStatus !== 'present' ? (
+            <Typography color="textSecondary">
+              {userSignup?.attendanceStatus === 'absent'
+                ? 'You were marked absent, so you cannot review this event.'
+                : 'Your attendance has not been marked yet. You can review once marked present.'}
+            </Typography>
+          ) : existingReview ? (
+            <Paper elevation={1} sx={{ p: 2, borderRadius: 2, backgroundColor: '#f9fafb' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Rating value={existingReview.rating || 0} readOnly />
+                <Typography variant="body2" color="textSecondary">
+                  {existingReview.rating}/5
+                </Typography>
+              </Box>
+              <Typography sx={{ color: '#374151' }}>
+                {existingReview.comment || 'No comment provided.'}
+              </Typography>
+            </Paper>
+          ) : (
+            <Paper elevation={1} sx={{ p: 2, borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography>Rating</Typography>
+                  <Rating
+                    value={reviewRating}
+                    onChange={(e, value) => setReviewRating(value || 0)}
+                  />
+                </Box>
+                <TextField
+                  label="Your review"
+                  multiline
+                  rows={3}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  inputProps={{ maxLength: 2000 }}
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview}
+                    sx={{ backgroundColor: '#dc2626', '&:hover': { backgroundColor: '#b91c1c' } }}
+                  >
+                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          )}
+        </Box>
+      )}
+      {isOrganiser && (
+        <Box sx={{ mt: 4 }}>
+          <Divider sx={{ mb: 3 }} />
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Event Reviews {!loadingReviews && `(${eventReviews.length})`}
+          </Typography>
+
+          {loadingReviews ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : eventReviews.length === 0 ? (
+            <Typography color="textSecondary">
+              No reviews yet.
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {eventReviews.map((review) => (
+                <Paper key={review._id} elevation={1} sx={{ p: 2, borderRadius: 2, backgroundColor: '#f9fafb' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#dc2626' }}>
+                      {review.userId?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </Avatar>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      {review.userId?.name || 'Anonymous'}
+                    </Typography>
+                    <Rating value={review.rating || 0} readOnly size="small" />
+                    <Typography variant="body2" color="textSecondary">
+                      {review.rating}/5
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ color: '#374151', ml: 5 }}>
+                    {review.comment || 'No comment provided.'}
+                  </Typography>
+                  {review.createdAt && (
+                    <Typography variant="caption" color="textSecondary" sx={{ ml: 5, display: 'block', mt: 1 }}>
+                      {format(parseISO(review.createdAt), 'MMM d, yyyy h:mm a')}
+                    </Typography>
+                  )}
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
       
       <Dialog open={confirmCancelOpen} onClose={() => setConfirmCancelOpen(false)}>
         <DialogTitle>Cancel Signup?</DialogTitle>
@@ -690,6 +918,32 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
                             </Typography>
                           );
                         })}
+                      </Box>
+                    )}
+                    {isOrganiser && (
+                      <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Chip
+                          label={signup.attendanceStatus ? `Attendance: ${signup.attendanceStatus}` : 'Attendance: not marked'}
+                          size="small"
+                          color={signup.attendanceStatus === 'present' ? 'success' : signup.attendanceStatus === 'absent' ? 'error' : 'default'}
+                          variant="outlined"
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleMarkAttendance(signup._id, 'present')}
+                          disabled={updatingAttendanceId === signup._id}
+                        >
+                          Mark Present
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleMarkAttendance(signup._id, 'absent')}
+                          disabled={updatingAttendanceId === signup._id}
+                        >
+                          Mark Absent
+                        </Button>
                       </Box>
                     )}
                   </Box>
