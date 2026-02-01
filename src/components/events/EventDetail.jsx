@@ -64,6 +64,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   const [showSignups, setShowSignups] = useState(false);
   const [userSignedUp, setUserSignedUp] = useState(false);
   const [signupFormOpen, setSignupFormOpen] = useState(false);
+  const [isEditingSignup, setIsEditingSignup] = useState(false);
   const [signupAnswers, setSignupAnswers] = useState({});
   const [signupErrors, setSignupErrors] = useState({});
   const [cancelling, setCancelling] = useState(false);
@@ -159,6 +160,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
             result.data.additionalFields.forEach(f => { init[f._id] = ''; });
             setSignupAnswers(init);
             setSignupErrors({});
+            setIsEditingSignup(false);
             setSignupFormOpen(true);
           }
         }
@@ -172,6 +174,20 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
   }, [eventId, user, navigate, isSignedUp]);
   
   useEffect(() => {}, [location?.state]);
+
+  const handleEditSignup = () => {
+    if (!userSignup || !Array.isArray(event?.additionalFields) || event.additionalFields.length === 0) {
+      return;
+    }
+    const init = {};
+    event.additionalFields.forEach((field) => {
+      init[field._id] = userSignup.additionalInfo?.[field._id] ?? '';
+    });
+    setSignupAnswers(init);
+    setSignupErrors({});
+    setIsEditingSignup(true);
+    setSignupFormOpen(true);
+  };
 
   const handleSignup = async () => {
     if (!isAuthenticated) {
@@ -204,6 +220,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         freshEvent.additionalFields.forEach(f => { init[f._id] = ''; });
         setSignupAnswers(init);
         setSignupErrors({});
+        setIsEditingSignup(false);
         setSignupFormOpen(true);
         return;
       }
@@ -236,6 +253,7 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
         refreshedResult.data.additionalFields.forEach(f => { init[f._id] = ''; });
         setSignupAnswers(init);
         setSignupErrors({});
+        setIsEditingSignup(false);
         setSignupFormOpen(true);
       } else {
         alert('Unable to load signup form. Please refresh the page and try again.');
@@ -298,6 +316,19 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
     });
     setSignupErrors(errs);
     if (Object.keys(errs).length > 0) return;
+
+    if (isEditingSignup) {
+      const result = await eventsApi.updateSignupAdditionalInfo(userSignup?._id, signupAnswers);
+      if (result.success) {
+        setUserSignup(result.data);
+        setSignups(prev => prev.map(s => (s._id === result.data._id ? result.data : s)));
+        setSignupFormOpen(false);
+        setIsEditingSignup(false);
+      } else {
+        alert(result.error || 'Failed to update signup answers');
+      }
+      return;
+    }
 
     const result = await signUpForEvent(eventId, signupAnswers);
     if (result.success) {
@@ -557,24 +588,46 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
             {!isOrganiser && (
               <>
                 {userSignedUp ? (
-                  <Button
-                    variant="outlined"
-                    onClick={() => setConfirmCancelOpen(true)}
-                    sx={{
-                      py: 1,
-                      px: 3,
-                      borderRadius: 2,
-                      borderColor: '#dc2626',
-                      color: '#dc2626',
-                      fontWeight: 'bold',
-                      '&:hover': {
-                        borderColor: '#b91c1c',
-                        backgroundColor: '#fef2f2',
-                      },
-                    }}
-                  >
-                    Signed Up ✓
-                  </Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    {Array.isArray(event?.additionalFields) && event.additionalFields.length > 0 && userSignup && (
+                      <Button
+                        variant="outlined"
+                        onClick={handleEditSignup}
+                        sx={{
+                          py: 1,
+                          px: 3,
+                          borderRadius: 2,
+                          borderColor: '#dc2626',
+                          color: '#dc2626',
+                          fontWeight: 'bold',
+                          '&:hover': {
+                            borderColor: '#b91c1c',
+                            backgroundColor: '#fef2f2',
+                          },
+                        }}
+                      >
+                        Edit Answers
+                      </Button>
+                    )}
+                    <Button
+                      variant="outlined"
+                      onClick={() => setConfirmCancelOpen(true)}
+                      sx={{
+                        py: 1,
+                        px: 3,
+                        borderRadius: 2,
+                        borderColor: '#dc2626',
+                        color: '#dc2626',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          borderColor: '#b91c1c',
+                          backgroundColor: '#fef2f2',
+                        },
+                      }}
+                    >
+                      Cancel Signup
+                    </Button>
+                  </Box>
                 ) : (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {Array.isArray(event?.additionalFields) && event.additionalFields.length > 0 && (
@@ -859,8 +912,16 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
       </Dialog>
 
       
-      <Dialog open={signupFormOpen} onClose={() => setSignupFormOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Signup form</DialogTitle>
+      <Dialog
+        open={signupFormOpen}
+        onClose={() => {
+          setSignupFormOpen(false);
+          setIsEditingSignup(false);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{isEditingSignup ? 'Edit signup answers' : 'Signup form'}</DialogTitle>
         <DialogContent>
           {(event?.additionalFields || []).length === 0 ? (
             <Typography color="textSecondary">No additional information required.</Typography>
@@ -924,9 +985,16 @@ const EventDetail = ({ eventId, signUpForEvent, cancelSignup, isSignedUp, delete
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSignupFormOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              setSignupFormOpen(false);
+              setIsEditingSignup(false);
+            }}
+          >
+            Cancel
+          </Button>
           <Button variant="contained" onClick={handleSubmitSignupForm} sx={{ backgroundColor: '#dc2626', '&:hover': { backgroundColor: '#b91c1c' } }}>
-            Submit
+            {isEditingSignup ? 'Save changes' : 'Submit'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,4 +1,5 @@
-﻿import mongoose from 'mongoose';
+﻿import { min } from 'date-fns';
+import mongoose from 'mongoose';
 
 // Schema for custom signup form fields (additionalFields from frontend)
 const additionalFieldSchema = new mongoose.Schema(
@@ -13,8 +14,8 @@ const additionalFieldSchema = new mongoose.Schema(
 const eventSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    description: { type: String },
-    location: { type: String },
+    description: { type: String, minLength: 10, required: true },
+    location: { type: String, required: true },
     startDate: {
       type: Date,
       index: true,
@@ -45,9 +46,9 @@ const eventSchema = new mongoose.Schema(
       },
     },
     organiserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    interests: [{ type: String }],
-    capacity: { type: Number },
-    signupCount: { type: Number, default: 0 },
+    interests: { type: [String], required: true },
+    capacity: { type: Number, required: true, min: 0 },
+    signupCount: { type: Number, default: 0, min: 0 },
     signupsOpen: { type: Boolean, default: true },
     imageUrl: { type: String },
     additionalFields: [additionalFieldSchema],

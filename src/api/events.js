@@ -194,10 +194,18 @@ export const updateSignupAttendance = async (signupId, attended) => {
   return await api.patch(`/signups/${signupId}/attendance`, { attended });
 };
 
+export const updateSignupAdditionalInfo = async (signupId, additionalInfo) => {
+  if (!signupId) {
+    return { success: false, error: 'Signup ID is required' };
+  }
+  return await api.patch(`/signups/${signupId}`, { additionalInfo });
+};
+
 // Get personalized event recommendations for the current user
 // Returns popular events if user has no interests set
-export const getRecommendedEvents = async (limit = 6) => {
-  const result = await api.get(`/suggestions?limit=${limit}`);
+export const getRecommendedEvents = async (limit) => {
+  const query = typeof limit === 'number' ? `?limit=${limit}` : '';
+  const result = await api.get(`/suggestions${query}`);
   if (!result.success) return result;
   
   // API returns { events: [...], recommendationType: 'personalized' | 'popular' }

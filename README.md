@@ -1,4 +1,4 @@
-The Loop is An event discovery platform that helps students find events they'll actually enjoy, powered by AI-driven personalized recommendations.
+The Loop is an event discovery platform that helps students find events they'll actually enjoy, powered by AI-driven personalized recommendations.
 
 
 ## Additional Feature: AI Event Recommendations
@@ -44,3 +44,11 @@ If the AI service is unavailable, or if a new user hasn't provided enough inform
 
 - **Users with interests**: Events are ranked by how well their tags match the user's selected interests
 - **New users**: Popular events (those with more signups) and upcoming events are shown first
+
+## References
+
+1. Google AI. "Embeddings Guide." Gemini API Documentation. https://ai.google.dev/gemini-api/docs/embeddings
+
+2. MongoDB. "Atlas Vector Search." MongoDB Node.js Driver Documentation. https://www.mongodb.com/docs/drivers/node/current/atlas-vector-search/
+
+3. Van Riel, Zen. "Hybrid Search Implementation Guide." AI Engineer Blogj. https://zenvanriel.nl/ai-engineer-blog/hybrid-search-implementation-guide/

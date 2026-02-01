@@ -205,7 +205,7 @@ async function buildUserContext(userId, includeSignedUp) {
   const { weights: signupInterestWeights, orderedList: pastSignupInterests } = 
     await buildSignupInterestInsights(Array.from(signedUpEventIds));
 
-  // Build review insights - extract topics from positive and negative reviews
+  // Build review insights - extract topics from positive reviews
   const reviewInsights = buildReviewInsights(reviews);
 
   const enhancedUser = {
@@ -232,7 +232,6 @@ async function buildUserContext(userId, includeSignedUp) {
 // Build insights from user reviews - extract positive and negative topic weights
 function buildReviewInsights(reviews) {
   const positiveTopics = new Map(); // topics from 4-5 star reviews
-  const negativeTopics = new Map(); // topics from 1-2 star reviews
 
   for (const review of reviews) {
     const interests = review.eventId?.interests || [];
@@ -244,18 +243,11 @@ function buildReviewInsights(reviews) {
       for (const interest of interests) {
         positiveTopics.set(interest, Math.max(positiveTopics.get(interest) || 0, weight));
       }
-    } else if (review.rating <= 2) {
-      // Negative review - weight by how bad (1 = 1.0, 2 = 0.5)
-      const weight = (3 - review.rating) / 2;
-      for (const interest of interests) {
-        negativeTopics.set(interest, Math.max(negativeTopics.get(interest) || 0, weight));
-      }
-    }
+    } 
   }
 
   return {
     positiveTopics: Object.fromEntries(positiveTopics),
-    negativeTopics: Object.fromEntries(negativeTopics),
     positiveTopicsList: [...positiveTopics.keys()],
     negativeTopicsList: [...negativeTopics.keys()],
   };
@@ -306,7 +298,7 @@ function applyBoosts(rankedEvents, context) {
     if (userInterestsSet.size > 0 && Array.isArray(event.interests)) {
       const overlapCount = event.interests.filter((interest) => userInterestsSet.has(interest)).length;
       const overlapRatio = overlapCount / userInterestsSet.size;
-      boost += Math.min(overlapRatio * 0.10, 0.10);
+      boost += Math.min(overlapRatio * 0.20, 0.20);
     }
 
     // Signup interest affinity boost (0-0.10)
@@ -323,7 +315,7 @@ function applyBoosts(rankedEvents, context) {
       boost += 0.02;
     }
 
-    // Search history recency decay boost (0-0.05)
+    // Search history recency decay boost (0-0.02)
     // If event matches a recent search query, apply exponential decay boost
     if (searchHistory.length > 0) {
       const eventText = `${event.title} ${event.description} ${(event.interests || []).join(' ')}`.toLowerCase();
@@ -333,14 +325,14 @@ function applyBoosts(rankedEvents, context) {
           const searchDate = new Date(search.createdAt);
           if (!isNaN(searchDate.getTime())) {
             const daysSinceSearch = (Date.now() - searchDate.getTime()) / (1000 * 60 * 60 * 24);
-            boost += 0.05 * Math.exp(-0.1 * daysSinceSearch);
+            boost += 0.02 * Math.exp(-0.1 * daysSinceSearch);
           }
           break; // Only apply once per event
         }
       }
     }
 
-    // View history recency decay boost (0-0.03)
+    // View history recency decay boost (0-0.06)
     // If user recently viewed this event, apply exponential decay boost
     if (viewHistory.length > 0) {
       for (const view of viewHistory) {
@@ -349,7 +341,7 @@ function applyBoosts(rankedEvents, context) {
           const viewDate = new Date(view.createdAt);
           if (!isNaN(viewDate.getTime())) {
             const daysSinceView = (Date.now() - viewDate.getTime()) / (1000 * 60 * 60 * 24);
-            boost += 0.03 * Math.exp(-0.1 * daysSinceView);
+            boost += 0.06 * Math.exp(-0.1 * daysSinceView);
           }
           break; // Only apply once per event
         }
@@ -398,10 +390,10 @@ function fallbackRanking(user, events, { signedUpEventIds, usePopularityOnly = f
         }
       } else {
         // Interest-based scoring
-        // Interest overlap (0-0.7)
+        // Interest overlap (0-0.6)
         const overlap = [...userInterests].filter((i) => eventInterests.has(i)).length;
         if (userInterests.size > 0) {
-          score += (overlap / userInterests.size) * 0.7;
+          score += (overlap / userInterests.size) * 0.6;
         }
 
         if (hasSignupInterestWeights && event.interests?.length) {

@@ -33,7 +33,7 @@ const ReminderNotification = ({ activeReminder, showNotification, closeNotificat
     <Dialog open={showNotification} onClose={closeNotification} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <NotificationsIcon sx={{ color: '#dc2626' }} />
-        <Typography variant="h6" sx={{ fontWeight: 'bold', flex: 1 }}>
+        <Typography component="span" variant="h6" sx={{ fontWeight: 'bold', flex: 1 }}>
           Event Reminder
         </Typography>
         <IconButton onClick={closeNotification} aria-label="close" size="small">

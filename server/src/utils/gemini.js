@@ -77,18 +77,6 @@ export function buildUserProfileText(user, options = {}) {
     parts.push(`Recently searched for: ${recentSearches}`);
   }
 
-  // Add recent view history (last 5 event titles)
-  if (user.viewHistory?.length) {
-    const recentViews = user.viewHistory
-      .slice(-5)
-      .map(h => h.eventId?.title)
-      .filter(Boolean)
-      .join(', ');
-    if (recentViews) {
-      parts.push(`Recently viewed events: ${recentViews}`);
-    }
-  }
-
   return parts.join('. ') || 'General user looking for events';
 }
 

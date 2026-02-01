@@ -30,9 +30,9 @@ const HomePage = ({ eventsProps }) => {
       setRecommendationsError(null);
       
       try {
-        const result = await getRecommendedEvents(6);
+        const result = await getRecommendedEvents();
         if (result.success) {
-          setRecommendations(result.data);
+          setRecommendations((result.data || []).slice(0, 6));
           setRecommendationType(result.recommendationType);
         } else {
           setRecommendationsError(result.error || 'Failed to load recommendations');

@@ -8,9 +8,9 @@ const signupSchema = new mongoose.Schema(
     attendedEvent: { type: Boolean, default: false },
     // Embedded reminder data
     reminder: {
-      sent: { type: Boolean, default: false },
-      dismissed: { type: Boolean, default: false },
-      time: { type: Date }, // Calculated as eventStart - 24 hours
+      sent: { type: Boolean, default: false, required: true },
+      dismissed: { type: Boolean, default: false, required: true },
+      time: { type: Date, required: true }, // Calculated as eventStart - 24 hours
     },
   },
   { timestamps: true }
